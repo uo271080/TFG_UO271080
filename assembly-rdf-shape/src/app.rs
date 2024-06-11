@@ -10,9 +10,9 @@ use yew::format::Json;
 use yew::prelude::*;
 use yew::services::storage::{Area, StorageService};
 
-use shex_validation::Validator;
-use shex_ast::{ast::Schema as SchemaJson, compiled::compiled_schema::CompiledSchema};
-use shex_compact::ShExParser;
+// use shex_validation::Validator;
+// use shex_ast::{ast::Schema as SchemaJson, compiled::compiled_schema::CompiledSchema};
+// use shex_compact::ShExParser;
 
 const KEY: &str = "yew.todomvc.self";
 

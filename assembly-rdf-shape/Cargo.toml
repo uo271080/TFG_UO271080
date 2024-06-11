@@ -18,9 +18,9 @@ wasm-logger = "0.2"
 wee_alloc = { version = "0.4.4", optional = true }
 yew = "0.17"
 gloo = "0.2" 
-shex_compact = "0.0.11"
-shex_validation = "0.0.11"
-shex_ast = "0.0.11"
+# shex_compact = "0.0.11"
+# shex_validation = "0.0.11"
+# shex_ast = "0.0.11"
 
 
 [dev-dependencies]
