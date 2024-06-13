@@ -10,6 +10,32 @@ body {
 
 .header{
   color: white;
+  text-align: center;
+}
+
+.content{
+  display: flex;
+  justify-content: center; 
+  align-items: center;  
+  flex-direction: column;
+}
+
+.footer-options {
+  display: flex;
+  justify-content: space-between; /* Alinea los elementos en los extremos del contenedor */
+  align-items: center; /* Centra los elementos verticalmente */
+  padding: 10px; /* Añade algo de espacio alrededor */
+}
+
+.parameters{
+  margin-right: auto;
+  margin-left: 9rem;
+}
+
+.editor{
+  width: 80%;
+  height: 15rem;
+  margin: 2rem;
 }
 
 .input-btn{
@@ -39,6 +65,21 @@ body {
   box-shadow: var(--shadow) 4px 4px;
   width: 60%;
 }
+
+.validate-btn{
+    color: white;
+    margin-left: auto;
+    margin-right: 40px;
+    background-color: #34D399;
+    font-weight: bold;
+    padding: 10px 20px;
+    border-radius: 5px;  
+}
+
+.validate-btn:hover {
+    background-color: #10B981;
+}
+
 
 .multi-button button {
   flex-grow: 1;
@@ -89,10 +130,42 @@ body {
 }
 
 .multi-button .selected{
-  background-color: black;
+  background-color: rgb(97, 0, 122);
   color: white;
 }
 
 .result{
-  color: white;
+  margin: 2rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;  
+}
+
+.search{
+  width: 20rem;
+  margin-bottom: 1rem;
+}
+
+table {
+  width: 60%;
+  border-collapse: collapse;
+  color:black;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+th {
+  background-color: #f2f2f2;
+}
+.valid {
+  background-color: #90ee90;
+}
+.invalid {
+  background-color: #ffcccb;
 }

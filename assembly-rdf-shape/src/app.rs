@@ -5,10 +5,12 @@ use log::*;
 use serde_derive::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use strum_macros::{EnumIter, ToString};
-use wasm_bindgen::convert::IntoWasmAbi;
-use yew::format::Json;
+use wasm_bindgen::prelude::*;
+use web_sys::js_sys::wasm_bindgen;
 use yew::prelude::*;
 use yew::services::storage::{Area, StorageService};
+// use oxrdf::{NamedNodeRef, vocab::rdf};
+// use oxttl::TurtleParser;
 
 // use shex_validation::Validator;
 // use shex_ast::{ast::Schema as SchemaJson, compiled::compiled_schema::CompiledSchema};
@@ -25,20 +27,34 @@ pub struct App {
     shapemap_parameters:Vec<String>,
 }
 
+#[wasm_bindgen(inline_js = "export function scrollToElement(id) { const element = document.getElementById(id); if(element) element.scrollIntoView({ behavior: 'smooth' }); }")]
+extern "C" {
+    fn scrollToElement(id: &str);
+}
+
+// #[wasm_bindgen(inline_js = "export function showYashe {var yashe = YASHE.fromTextArea(document.getElementById('showcase'),{});}")]
+// extern "C" {
+//     fn showYashe();
+// }
+
 #[derive(Serialize, Deserialize)]
 pub struct State {
     filter: Filter,
     show_result: bool,
+    scroll_needed: bool, 
     rdf_value:String,
     shex_value:String,
     shapemap_value:String,
     edit_value: String,
+    search_text: String,
 }
 
 pub enum Msg {
     SetFilter(Filter),
+    ShowRDFProperties,
     Validate,
     UpdateInput(String),
+    UpdateSearch(String),
     Nope
 }
 
@@ -51,10 +67,12 @@ impl Component for App {
         let state: State = State {
             filter: Filter::RDF,
             show_result:false,
+            scroll_needed: false, 
             edit_value: "".into(),
             rdf_value:"".into(),
             shex_value:"".into(),
-            shapemap_value:"".into()
+            shapemap_value:"".into(),
+            search_text: "".into(),
         };
         App {
             link,
@@ -92,12 +110,16 @@ impl Component for App {
             Msg::SetFilter(filter) => {
                 filter.update(&mut self.state);
             }
+            Msg::ShowRDFProperties => {
+                // let schema_person = NamedNodeRef::new("http://schema.org/Person").unwrap();
+                
+            }
             Msg::Validate => {
                 print!("Incompleto");
                 // let schema = ShExParser::parse(&self.state.shex_value, None).unwrap();
                 // // let mut schema: CompiledSchema = CompiledSchema::new();
                 // let mut validator = Validator::new(schema).with_max_steps(1);
-                // debug!("Validating with max_steps: {}", 1);
+                // debug!("max_steps: {}", 1);
                 // let mut shapemap = match shapemap {
                 //     None => QueryShapeMap::new(),
                 //     Some(shapemap_buf) => parse_shapemap('', '')?,
@@ -108,6 +130,7 @@ impl Component for App {
                 // };
         
                 self.state.show_result=true;
+                self.state.scroll_needed = true; 
             }
             Msg::UpdateInput(val) =>{
                 println!("Input: {}", val);
@@ -118,11 +141,22 @@ impl Component for App {
                     Filter::ShapeMap => self.state.shapemap_value = val.clone(),
                 }
                 //self.state.update_edit_value();
-            }
+            },
+            Msg::UpdateSearch(text) => {
+                self.state.search_text = text.to_lowercase();
+            },
             Msg::Nope => {}
         }
         //self.storage.store(KEY, Json(&self.state.entries));
         true
+    }
+
+    fn rendered(&mut self, first_render: bool) {
+        if self.state.scroll_needed && !first_render {
+           scrollToElement("result");
+            self.state.scroll_needed = false; 
+        }
+        // showYashe();
     }
 
     fn view(&self) -> Html {
@@ -131,22 +165,24 @@ impl Component for App {
             <div class="todomvc-wrapper">
                 <section class="app">
                     <header class="header">
-                        <h1>{ "RDF Shape Validator" }</h1>
+                        <h1 class="title">{ "RDF Shape Validator" }</h1>
                     </header>
-                    <div class="footer">
+                    <div class="content">
                         <div class="multi-button">
                             { for Filter::iter().map(|flt| self.view_filter(flt)) }
                         </div>
-                        <div>
                             { self.view_input() }
-                        </div>
-                        <div class="parameters">
+                            <textarea id="showcase"></textarea>
+                        <div class="footer-options">
                             { self.view_parameters() }
-                        </div>
-                        <button class="clear-completed text-white ml-auto mr-40 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded" onclick=self.link.callback(|_| Msg::Validate)>
+                       <button class="clear-completed validate-btn" onclick=self.link.callback(|_| Msg::Validate)>
                             { format!("Validate") }
                         </button>
-                        <div class="result">
+                        <button class="clear-completed validate-btn" onclick=self.link.callback(|_| Msg::ShowRDFProperties)>
+                            { format!("Validate") }
+                        </button>
+                        </div>
+                        <div  id="result" class="result">
                             {self.render_result()}
                         </div>
                         <div class="bg-blue w-10">
@@ -171,9 +207,39 @@ impl App {
     fn render_result(&self) -> Html {
         info!("Show result: {}", self.state.show_result);
         if self.state.show_result {
-            html! {
+            return html! {
                 <div class="result">
-                    {"EL RESULTADO SE MUESTRA!!!"}
+                <div>
+                <input type="text" class="search" placeholder="Buscar..."/>
+                <button>{"CSV"}</button>
+                </div>
+                <table>
+                    <tr>
+                        <th>{"Node"}</th>
+                        <th>{"Shape"}</th>
+                        <th>{"Status"}</th>
+                    </tr>
+                    <tr class="valid">
+                        <td>{":alice"}</td>
+                        <td>{":User"}</td>
+                        <td>{"Valid"}</td>
+                    </tr>
+                    <tr class="valid">
+                        <td>{":bob"}</td>
+                        <td>{":User"}</td>
+                        <td>{"Valid"}</td>
+                    </tr>
+                    <tr class="invalid">
+                        <td>{":carol"}</td>
+                        <td>{":User"}</td>
+                        <td>{"Invalid"}</td>
+                    </tr>
+                    <tr class="invalid">
+                        <td>{":emily"}</td>
+                        <td>{":User"}</td>
+                        <td>{"Invalid"}</td>
+                    </tr>
+                </table>
                 </div>
             }
         } else {
@@ -190,7 +256,7 @@ impl App {
         info!("SHAPE MAP VALUE: {}", self.state.shapemap_value);
         html! {
             <textarea id="showcase" 
-            class="new-todo" 
+            class="editor" 
             placeholder="Escribe tu código aquí..."
             value=&self.state.edit_value
                    oninput=self.link.callback(|e: InputData| Msg::UpdateInput(e.value))
@@ -209,7 +275,7 @@ impl App {
 
     fn view_select(&self, options: &Vec<String>) -> Html {
         html! {
-            <select>
+            <select class="parameters">
                 {for options.iter().map(|opcion| {
                     html! {
                         <option value={opcion}>{opcion}</option>
