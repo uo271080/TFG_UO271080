@@ -9,8 +9,8 @@ use wasm_bindgen::prelude::*;
 use web_sys::js_sys::wasm_bindgen;
 use yew::prelude::*;
 use yew::services::storage::{Area, StorageService};
-// use oxrdf::{NamedNodeRef, vocab::rdf};
-// use oxttl::TurtleParser;
+use oxrdf::{NamedNodeRef, Term, vocab::rdf};
+use oxttl::TurtleParser;
 
 // use shex_validation::Validator;
 // use shex_ast::{ast::Schema as SchemaJson, compiled::compiled_schema::CompiledSchema};
@@ -27,15 +27,32 @@ pub struct App {
     shapemap_parameters:Vec<String>,
 }
 
+#[wasm_bindgen(inline_js = "
+import YATE from 'perfectkb-yate';
+export function initializeYate() {
+	var yate = YATE.fromTextArea(document.getElementById('editor-yate'), {})
+    window.yasheInstance = yate;
+}
+")]
+extern "C" {
+    fn initializeYate();
+}
+
+#[wasm_bindgen(inline_js = "
+import YASHE from 'yashe';
+export function initializeYashe() {
+    var yashe = YASHE.fromTextArea(document.getElementById('editor-yashe'), {});
+    window.yasheInstance = yashe;
+}
+")]
+extern "C" {
+    fn initializeYashe();
+}
+
 #[wasm_bindgen(inline_js = "export function scrollToElement(id) { const element = document.getElementById(id); if(element) element.scrollIntoView({ behavior: 'smooth' }); }")]
 extern "C" {
     fn scrollToElement(id: &str);
 }
-
-// #[wasm_bindgen(inline_js = "export function showYashe {var yashe = YASHE.fromTextArea(document.getElementById('showcase'),{});}")]
-// extern "C" {
-//     fn showYashe();
-// }
 
 #[derive(Serialize, Deserialize)]
 pub struct State {
@@ -111,24 +128,26 @@ impl Component for App {
                 filter.update(&mut self.state);
             }
             Msg::ShowRDFProperties => {
-                // let schema_person = NamedNodeRef::new("http://schema.org/Person").unwrap();
-                
+                let schema_person = NamedNodeRef::new("http://schema.org/Person").unwrap();
+                let file = b"@base <http://example.com/> .
+                @prefix schema: <http://schema.org/> .
+                <foo> a schema:Person ;
+                    schema:name \"Foo\" .
+                <bar> a schema:Person ;
+                    schema:name \"Bar\" .";
+                            
+                let schema_person = NamedNodeRef::new("http://schema.org/Person").unwrap();
+                let mut count = 0;
+                // for triple in TurtleParser::new().parse_read(file.as_ref()) {
+                //     let triple = triple.unwrap();
+                //     if triple.predicate.as_ref() == rdf::TYPE && triple.object == Term::from(schema_person) {
+                //         count += 1;
+                //     }
+                // }
+                println!("Number of people: {}", count);
             }
             Msg::Validate => {
-                print!("Incompleto");
-                // let schema = ShExParser::parse(&self.state.shex_value, None).unwrap();
-                // // let mut schema: CompiledSchema = CompiledSchema::new();
-                // let mut validator = Validator::new(schema).with_max_steps(1);
-                // debug!("max_steps: {}", 1);
-                // let mut shapemap = match shapemap {
-                //     None => QueryShapeMap::new(),
-                //     Some(shapemap_buf) => parse_shapemap('', '')?,
-                // };
-                // let result = match &data {
-                //     Data::Endpoint(_) => validator.validate_shapemap(&shapemap, endpoint),
-                //     Data::RDFData(data) => validator.validate_shapemap(&shapemap, data),
-                // };
-        
+                print!("Incompleto");           
                 self.state.show_result=true;
                 self.state.scroll_needed = true; 
             }
@@ -156,6 +175,8 @@ impl Component for App {
            scrollToElement("result");
             self.state.scroll_needed = false; 
         }
+        initializeYate();
+        initializeYashe();
         // showYashe();
     }
 
@@ -171,15 +192,16 @@ impl Component for App {
                         <div class="multi-button">
                             { for Filter::iter().map(|flt| self.view_filter(flt)) }
                         </div>
-                            { self.view_input() }
-                            <textarea id="showcase"></textarea>
+                            // { self.view_input() }
+                            <textarea id="editor-yate"></textarea>
+                            <textarea id="editor-yashe"></textarea>
                         <div class="footer-options">
                             { self.view_parameters() }
                        <button class="clear-completed validate-btn" onclick=self.link.callback(|_| Msg::Validate)>
                             { format!("Validate") }
                         </button>
                         <button class="clear-completed validate-btn" onclick=self.link.callback(|_| Msg::ShowRDFProperties)>
-                            { format!("Validate") }
+                            { format!("Testing") }
                         </button>
                         </div>
                         <div  id="result" class="result">
@@ -249,21 +271,21 @@ impl App {
         }
     }
 
-    fn view_input(&self) -> Html {
-        info!("{}", &self.state.edit_value);
-        info!("RDF VALUE: {}", self.state.rdf_value);
-        info!("SHEX VALUE: {}", self.state.shex_value);
-        info!("SHAPE MAP VALUE: {}", self.state.shapemap_value);
-        html! {
-            <textarea id="showcase" 
-            class="editor" 
-            placeholder="Escribe tu código aquí..."
-            value=&self.state.edit_value
-                   oninput=self.link.callback(|e: InputData| Msg::UpdateInput(e.value))
-            >
-            </textarea>
-        }
-    }
+    // fn view_input(&self) -> Html {
+    //     info!("{}", &self.state.edit_value);
+    //     info!("RDF VALUE: {}", self.state.rdf_value);
+    //     info!("SHEX VALUE: {}", self.state.shex_value);
+    //     info!("SHAPE MAP VALUE: {}", self.state.shapemap_value);
+    //     html! {
+    //         <textarea id="showcase" 
+    //         class="editor" 
+    //         placeholder="Escribe tu código aquí..."
+    //         value=&self.state.edit_value
+    //                oninput=self.link.callback(|e: InputData| Msg::UpdateInput(e.value))
+    //         >
+    //         </textarea>
+    //     }
+    // }
 
     fn view_parameters(&self) -> Html {
         match self.state.filter {
