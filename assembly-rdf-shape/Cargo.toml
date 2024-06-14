@@ -18,8 +18,8 @@ wasm-logger = "0.2"
 wee_alloc = { version = "0.4.4", optional = true }
 yew = "0.17"
 gloo = "0.2" 
-# oxttl = "0.1.0-alpha.6"
-# oxrdf = "0.1.7"
+oxttl = "0.1.0-alpha.6"
+oxrdf = "0.1.7"
 # shex_compact = "0.0.11"
 # shex_validation = "0.0.11"
 # shex_ast = "0.0.11"
@@ -35,3 +35,7 @@ features = [
   'KeyboardEvent',
   "Element"
 ]
+
+[dependencies.getrandom]
+version = "0.2.15"
+features = ["js"]
