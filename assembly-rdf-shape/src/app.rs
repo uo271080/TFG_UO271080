@@ -9,8 +9,6 @@ use wasm_bindgen::prelude::*;
 use web_sys::js_sys::wasm_bindgen;
 use yew::prelude::*;
 use yew::services::storage::{Area, StorageService};
-use oxrdf::{NamedNodeRef, Term, vocab::rdf};
-use oxttl::TurtleParser;
 
 // use shex_validation::Validator;
 // use shex_ast::{ast::Schema as SchemaJson, compiled::compiled_schema::CompiledSchema};
@@ -29,9 +27,29 @@ pub struct App {
 
 #[wasm_bindgen(inline_js = "
 import YATE from 'perfectkb-yate';
+export function getYate() {
+	return window.yateInstance.getValue();
+}
+")]
+extern "C" {
+    fn getYate() -> String;
+}
+
+#[wasm_bindgen(inline_js = "
+import YATE from 'perfectkb-yate';
+export function getYashe() {
+	return window.yasheInstance.getValue();
+}
+")]
+extern "C" {
+    fn getYashe() -> String;
+}
+
+#[wasm_bindgen(inline_js = "
+import YATE from 'perfectkb-yate';
 export function initializeYate() {
 	var yate = YATE.fromTextArea(document.getElementById('editor-yate'), {})
-    window.yasheInstance = yate;
+    window.yateInstance = yate;
 }
 ")]
 extern "C" {
@@ -128,23 +146,10 @@ impl Component for App {
                 filter.update(&mut self.state);
             }
             Msg::ShowRDFProperties => {
-                let schema_person = NamedNodeRef::new("http://schema.org/Person").unwrap();
-                let file = b"@base <http://example.com/> .
-                @prefix schema: <http://schema.org/> .
-                <foo> a schema:Person ;
-                    schema:name \"Foo\" .
-                <bar> a schema:Person ;
-                    schema:name \"Bar\" .";
-                            
-                let schema_person = NamedNodeRef::new("http://schema.org/Person").unwrap();
-                let mut count = 0;
-                // for triple in TurtleParser::new().parse_read(file.as_ref()) {
-                //     let triple = triple.unwrap();
-                //     if triple.predicate.as_ref() == rdf::TYPE && triple.object == Term::from(schema_person) {
-                //         count += 1;
-                //     }
-                // }
-                println!("Number of people: {}", count);
+                let yate_value = getYate();
+                let yashe_value = getYashe();
+                web_sys::console::log_1(&yate_value.into());
+                web_sys::console::log_1(&yashe_value.into());
             }
             Msg::Validate => {
                 print!("Incompleto");           
@@ -175,8 +180,10 @@ impl Component for App {
            scrollToElement("result");
             self.state.scroll_needed = false; 
         }
-        initializeYate();
-        initializeYashe();
+        if(first_render){
+            initializeYate();
+            initializeYashe();
+        }
         // showYashe();
     }
 
@@ -189,20 +196,33 @@ impl Component for App {
                         <h1 class="title">{ "RDF Shape Validator" }</h1>
                     </header>
                     <div class="content">
-                        <div class="multi-button">
-                            { for Filter::iter().map(|flt| self.view_filter(flt)) }
-                        </div>
+                        // <div class="multi-button">
+                        //     { for Filter::iter().map(|flt| self.view_filter(flt)) }
+                        // </div>
                             // { self.view_input() }
-                            <textarea id="editor-yate"></textarea>
-                            <textarea id="editor-yashe"></textarea>
+                        <div class="yatshe-editors">
+                            <div class="yashe-container">
+                                <h3 class="title-editor">{"RDF"}</h3>
+                                <textarea id="editor-yashe"></textarea>
+                                { self.view_parameters(Filter::RDF) }
+                                <div class="shapemap-container">
+                                    <h3 class="title-editor">{"ShapeMap"}</h3>
+                                    <textarea class="shapemap-editor"></textarea>
+                                </div>
+                            </div>
+                            <div class="yate-container">
+                                <h3 class="title-editor">{"ShEx"}</h3>
+                                <textarea id="editor-yate"></textarea>
+                                { self.view_parameters(Filter::ShEx) }
+                            </div>
+                        </div>
                         <div class="footer-options">
-                            { self.view_parameters() }
-                       <button class="clear-completed validate-btn" onclick=self.link.callback(|_| Msg::Validate)>
+                        <button class="clear-completed validate-btn" onclick=self.link.callback(|_| Msg::Validate)>
                             { format!("Validate") }
                         </button>
-                        <button class="clear-completed validate-btn" onclick=self.link.callback(|_| Msg::ShowRDFProperties)>
-                            { format!("Testing") }
-                        </button>
+                        // <button class="clear-completed validate-btn" onclick=self.link.callback(|_| Msg::ShowRDFProperties)>
+                        //     { format!("Testing") }
+                        // </button>
                         </div>
                         <div  id="result" class="result">
                             {self.render_result()}
@@ -287,8 +307,8 @@ impl App {
     //     }
     // }
 
-    fn view_parameters(&self) -> Html {
-        match self.state.filter {
+    fn view_parameters(&self,filter: Filter) -> Html {
+        match filter {
             Filter::RDF => self.view_select(&self.rdf_parameters),
             Filter::ShEx => self.view_select(&self.shex_parameters),
             Filter::ShapeMap => self.view_select(&self.shapemap_parameters),
