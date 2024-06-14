@@ -21,15 +21,9 @@ body {
 }
 
 .footer-options {
+  width: 100%;
   display: flex;
-  justify-content: space-between; /* Alinea los elementos en los extremos del contenedor */
-  align-items: center; /* Centra los elementos verticalmente */
-  padding: 10px; /* Añade algo de espacio alrededor */
-}
-
-.parameters{
-  margin-right: auto;
-  margin-left: 9rem;
+  justify-content:flex-end;
 }
 
 .editor{
@@ -68,12 +62,10 @@ body {
 
 .validate-btn{
     color: white;
-    margin-left: auto;
-    margin-right: 40px;
     background-color: #34D399;
     font-weight: bold;
-    padding: 10px 20px;
     border-radius: 5px;  
+    margin-right: 10rem;
 }
 
 .validate-btn:hover {
@@ -172,9 +164,43 @@ th {
 
 // YATE
 .yashe{
-  width: 40rem;
+  width: 60rem;
 }
 
 .yate{
-  width: 40rem;
+  width: 60rem;
+}
+
+.yatshe-editors{
+  display: flex;
+  flex-direction: row;
+  gap: 5rem;
+}
+
+.yashe-container .yate-container{
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.shapemap-container{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-top: 5rem;
+}
+
+.parameters{
+  width: 20%;
+  margin-top: 1rem;
+}
+
+.shapemap-editor{
+  width: 60rem;
+  height: 15rem;
+}
+
+.title-editor{
+  color: white;
 }

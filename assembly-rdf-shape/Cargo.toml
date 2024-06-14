@@ -20,9 +20,6 @@ yew = "0.17"
 gloo = "0.2" 
 oxttl = "0.1.0-alpha.6"
 oxrdf = "0.1.7"
-# shex_compact = "0.0.11"
-# shex_validation = "0.0.11"
-# shex_ast = "0.0.11"
 
 
 [dev-dependencies]
