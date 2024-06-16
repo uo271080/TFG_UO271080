@@ -11,17 +11,15 @@ crate-type = ["cdylib", "rlib"]
 log = "0.4"
 strum = "0.19"
 strum_macros = "0.19"
-serde = "1"
-serde_derive = "1"
+serde = { version = "1.0", features = ["derive"] }
+serde-wasm-bindgen = "0.4"
 wasm-bindgen = "0.2.58"
 wasm-logger = "0.2"
 wee_alloc = { version = "0.4.4", optional = true }
 yew = "0.17"
 gloo = "0.2" 
-# shex_compact = "0.0.11"
-# shex_validation = "0.0.11"
-# shex_ast = "0.0.11"
-
+reqwasm = "0.5.0"
+gloo-net = "0.5.0"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
@@ -31,4 +29,9 @@ gloo = "0.2"
 version = "0.3.4"
 features = [
   'KeyboardEvent',
+  "Element"
 ]
+
+[dependencies.getrandom]
+version = "0.2.15"
+features = ["js"]

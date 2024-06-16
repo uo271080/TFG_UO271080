@@ -1,18 +1,17 @@
+use std::convert::TryInto;
 // use std::ffi::c_void;
 use std::vec;
 
 use log::*;
-use serde_derive::{Deserialize, Serialize};
-use strum::IntoEnumIterator;
+use reqwasm::http::Request;
+use serde::de::value;
+use serde::{Deserialize, Serialize};
 use strum_macros::{EnumIter, ToString};
-use wasm_bindgen::convert::IntoWasmAbi;
-use yew::format::Json;
+use wasm_bindgen::prelude::*;
+use web_sys::js_sys::wasm_bindgen;
 use yew::prelude::*;
 use yew::services::storage::{Area, StorageService};
 
-// use shex_validation::Validator;
-// use shex_ast::{ast::Schema as SchemaJson, compiled::compiled_schema::CompiledSchema};
-// use shex_compact::ShExParser;
 
 const KEY: &str = "yew.todomvc.self";
 
@@ -25,22 +24,94 @@ pub struct App {
     shapemap_parameters:Vec<String>,
 }
 
+#[wasm_bindgen(inline_js = "
+import YATE from 'perfectkb-yate';
+export function setYate(input) {
+    return window.yateInstance.setValue(input);
+}
+")]
+extern "C" {
+    fn setYate(input: &str);
+}
+
+#[wasm_bindgen(inline_js = "
+export function setYashe(input) {
+    return window.yasheInstance.setValue(input);
+}
+")]
+extern "C" {
+    fn setYashe(input: &str);
+}
+
+#[wasm_bindgen(inline_js = "
+export function getYate() {
+	return window.yateInstance.getValue();
+}
+")]
+extern "C" {
+    fn getYate() -> String;
+}
+
+#[wasm_bindgen(inline_js = "
+export function getYashe() {
+	return window.yasheInstance.getValue();
+}
+")]
+extern "C" {
+    fn getYashe() -> String;
+}
+
+#[wasm_bindgen(inline_js = "
+import YATE from 'perfectkb-yate';
+export function initializeYate() {
+	var yate = YATE.fromTextArea(document.getElementById('editor-yate'), {})
+    window.yateInstance = yate;
+}
+")]
+extern "C" {
+    fn initializeYate();
+}
+
+#[wasm_bindgen(inline_js = "
+import YASHE from 'yashe';
+export function initializeYashe() {
+    var yashe = YASHE.fromTextArea(document.getElementById('editor-yashe'), {});
+    window.yasheInstance = yashe;
+}
+")]
+extern "C" {
+    fn initializeYashe();
+}
+
+#[wasm_bindgen(inline_js = "export function scrollToElement(id) { const element = document.getElementById(id); if(element) element.scrollIntoView({ behavior: 'smooth' }); }")]
+extern "C" {
+    fn scrollToElement(id: &str);
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct State {
     filter: Filter,
     show_result: bool,
-    rdf_value:String,
-    shex_value:String,
+    scroll_needed: bool, 
     shapemap_value:String,
     edit_value: String,
+    search_text: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ExampleData {
+    rdf: String,
+    shex: String,
+    shapemap: String
 }
 
 pub enum Msg {
-    SetFilter(Filter),
     Validate,
-    UpdateInput(String),
+    UpdateSearch(String),
+    LoadExample,
     Nope
 }
+
 
 impl Component for App {
     type Message = Msg;
@@ -51,10 +122,10 @@ impl Component for App {
         let state: State = State {
             filter: Filter::RDF,
             show_result:false,
+            scroll_needed: false, 
             edit_value: "".into(),
-            rdf_value:"".into(),
-            shex_value:"".into(),
-            shapemap_value:"".into()
+            shapemap_value:"".into(),
+            search_text: "".into(),
         };
         App {
             link,
@@ -89,40 +160,35 @@ impl Component for App {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::SetFilter(filter) => {
-                filter.update(&mut self.state);
-            }
             Msg::Validate => {
-                print!("Incompleto");
-                // let schema = ShExParser::parse(&self.state.shex_value, None).unwrap();
-                // // let mut schema: CompiledSchema = CompiledSchema::new();
-                // let mut validator = Validator::new(schema).with_max_steps(1);
-                // debug!("Validating with max_steps: {}", 1);
-                // let mut shapemap = match shapemap {
-                //     None => QueryShapeMap::new(),
-                //     Some(shapemap_buf) => parse_shapemap('', '')?,
-                // };
-                // let result = match &data {
-                //     Data::Endpoint(_) => validator.validate_shapemap(&shapemap, endpoint),
-                //     Data::RDFData(data) => validator.validate_shapemap(&shapemap, data),
-                // };
-        
+                print!("Incompleto");           
                 self.state.show_result=true;
+                self.state.scroll_needed = true; 
             }
-            Msg::UpdateInput(val) =>{
-                println!("Input: {}", val);
-                self.state.edit_value = val.clone();
-                match self.state.filter {
-                    Filter::RDF => self.state.rdf_value = val.clone(),
-                    Filter::ShEx => self.state.shex_value = val.clone(),
-                    Filter::ShapeMap => self.state.shapemap_value = val.clone(),
-                }
-                //self.state.update_edit_value();
-            }
+            Msg::UpdateSearch(text) => {
+                self.state.search_text = text.to_lowercase();
+            },
+            Msg::LoadExample =>{
+                setYate("PREFIX : <http://example.org/>\nPREFIX schema: <http://schema.org/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nPREFIX foaf: <http://xmlns.com/foaf/0.1/>\n\n:alice schema:name \"Alice\" ;\n       schema:gender schema:Female ;\n       schema:knows :bob .\n\n:bob schema:gender schema:Male ;\n       schema:name \"Robert\" ;\n       schema:birthDate \"1980-03-10\"^^xsd:date .\n\n:carol schema:name \"Carol\" ;\n       schema:gender \"unspecified\" ;\n       foaf:name \"Carol\" .\n\n:dave schema:name \"Dave\" ;\n       schema:gender \"XYY\" ;\n       schema:birthDate \"1980-01-01\"^^xsd:date .\n\n:emily schema:name \"Emily\" ;\n       schema:alternateName \"Emilee\" ;\n       schema:gender schema:Female .\n\n:frank schema:name \"Frank\" ;\n       schema:gender schema:Male .\n\n:grace schema:name \"Grace\" ;\n       schema:gender schema:Male ;\n       schema:knows :bob .\n\n:harold schema:name \"Harold\" ;\n        schema:gender schema:Male ;\n        schema:knows :grace .");
+                setYashe("PREFIX : <http://example.org/>\nPREFIX schema: <http://schema.org/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n\n:User {\n  schema:name xsd:string ;\n  schema:birthDate xsd:date? ;\n  schema:gender [ schema:Male schema:Female ] OR xsd:string ;\n  schema:knows IRI @:User*\n}");
+                self.state.shapemap_value = ":alice@:User,:bob@:User,:carol@:User,:emily@:User,:frank@:User,:grace@:User,:harold@:User".to_string();
+            },
             Msg::Nope => {}
         }
         //self.storage.store(KEY, Json(&self.state.entries));
         true
+    }
+    
+    fn rendered(&mut self, first_render: bool) {
+        if self.state.scroll_needed && !first_render {
+           scrollToElement("result");
+            self.state.scroll_needed = false; 
+        }
+        if(first_render){
+            initializeYate();
+            initializeYashe();
+        }
+        // showYashe();
     }
 
     fn view(&self) -> Html {
@@ -131,25 +197,46 @@ impl Component for App {
             <div class="todomvc-wrapper">
                 <section class="app">
                     <header class="header">
-                        <h1>{ "RDF Shape Validator" }</h1>
+                    <nav>
+                            <div class="wrapper">
+                                <div class="logo"><a href="#">{"WASM - RDF VALIDATOR"}</a></div>
+                                <input type="radio" name="slider" id="menu-btn" />
+                                <input type="radio" name="slider" id="close-btn" />
+                                <ul class="nav-links">
+                                    <label for="close-btn" class="btn close-btn"><i class="fas fa-times"></i></label>
+                                    <li class="menu-btn"><a onclick=self.link.callback(|_| Msg::LoadExample)>{"CARGAR EJEMPLO"}</a></li>
+                                </ul>
+                                <label for="menu-btn" class="btn menu-btn"><i class="fas fa-bars"></i></label>
+                            </div>
+                        </nav>
                     </header>
-                    <div class="footer">
-                        <div class="multi-button">
-                            { for Filter::iter().map(|flt| self.view_filter(flt)) }
+                    <div class="content">
+                        <div class="editors-container">
+                            <div class="yashe-container">
+                                <h3 class="title-editor">{"RDF"}</h3>
+                                <textarea id="editor-yate"></textarea>
+                                { self.view_parameters(Filter::RDF) }
+                                <div class="shapemap-container">
+                                    <h3 class="title-editor">{"ShapeMap"}</h3>
+                                    <textarea class="shapemap-editor">{self.state.shapemap_value.clone()}</textarea>
+                                </div>
+                            </div>
+                            <div class="yate-container">
+                                <h3 class="title-editor">{"ShEx"}</h3>
+                                <textarea id="editor-yashe"></textarea>
+                                { self.view_parameters(Filter::ShEx) }
+                            </div>
                         </div>
-                        <div>
-                            { self.view_input() }
-                        </div>
-                        <div class="parameters">
-                            { self.view_parameters() }
-                        </div>
-                        <button class="clear-completed text-white ml-auto mr-40 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded" onclick=self.link.callback(|_| Msg::Validate)>
-                            { format!("Validate") }
+                        <div class="footer-options">
+                        <button class="clear-completed button-27" onclick=self.link.callback(|_| Msg::Validate)>
+                            { format!("VALIDAR") }
                         </button>
-                        <div class="result">
-                            {self.render_result()}
+                        // <button class="clear-completed validate-btn" onclick=self.link.callback(|_| Msg::LoadExample)>
+                        //     { format!("Testing") }
+                        // </button>
                         </div>
-                        <div class="bg-blue w-10">
+                        <div  id="result" class="result">
+                            {self.render_result()}
                         </div>
                     </div>
                 </section>
@@ -159,21 +246,30 @@ impl Component for App {
 }
 
 impl App {
-    fn view_filter(&self, filter: Filter) -> Html {
-        let flt = filter.clone();
-        html! {
-            <button class=if self.state.filter == flt { "selected" } else { "not-selected" } onclick=self.link.callback(move |_| Msg::SetFilter(flt.clone()))>
-                    { filter }
-            </button>
-        }
-    }
 
+    // async fn loadFile(){
+    //     let resp = Request::get("../static/example.json").send().await.unwrap();
+    //     print!("{}", resp.status());
+    // }
+    
     fn render_result(&self) -> Html {
         info!("Show result: {}", self.state.show_result);
         if self.state.show_result {
+            let search_text = self.state.search_text.clone();
             html! {
                 <div class="result">
-                    {"EL RESULTADO SE MUESTRA!!!"}
+                    <div>
+                        <input type="text" class="search" placeholder="Buscar..." oninput=self.link.callback(|e: InputData| Msg::UpdateSearch(e.value)) />
+                        <button>{"CSV"}</button>
+                    </div>
+                    <table>
+                        <tr>
+                            <th>{"Node"}</th>
+                            <th>{"Shape"}</th>
+                            <th>{"Status"}</th>
+                        </tr>
+                        { self.render_rows(&search_text) }
+                    </table>
                 </div>
             }
         } else {
@@ -183,24 +279,33 @@ impl App {
         }
     }
 
-    fn view_input(&self) -> Html {
-        info!("{}", &self.state.edit_value);
-        info!("RDF VALUE: {}", self.state.rdf_value);
-        info!("SHEX VALUE: {}", self.state.shex_value);
-        info!("SHAPE MAP VALUE: {}", self.state.shapemap_value);
-        html! {
-            <textarea id="showcase" 
-            class="new-todo" 
-            placeholder="Escribe tu código aquí..."
-            value=&self.state.edit_value
-                   oninput=self.link.callback(|e: InputData| Msg::UpdateInput(e.value))
-            >
-            </textarea>
-        }
+    fn render_rows(&self, search_text: &str) -> Html {
+        let rows = vec![
+            (":alice", ":User", "Valid"),
+            (":bob", ":User", "Valid"),
+            (":carol", ":User", "Valid"),
+            (":emily", ":User", "Invalid"),
+            (":frank", ":User", "Invalid"),
+            (":grace", ":User", "Invalid"),
+            (":harold", ":User", "Invalid")
+        ];
+
+        rows.into_iter()
+            .filter(|(node, _, _)| node.contains(search_text))
+            .map(|(node, shape, status)| {
+                html! {
+                    <tr class={ if status == "Valid" { "valid" } else { "invalid" } }>
+                        <td>{node}</td>
+                        <td>{shape}</td>
+                        <td>{status}</td>
+                    </tr>
+                }
+            })
+            .collect()
     }
 
-    fn view_parameters(&self) -> Html {
-        match self.state.filter {
+    fn view_parameters(&self,filter: Filter) -> Html {
+        match filter {
             Filter::RDF => self.view_select(&self.rdf_parameters),
             Filter::ShEx => self.view_select(&self.shex_parameters),
             Filter::ShapeMap => self.view_select(&self.shapemap_parameters),
@@ -209,10 +314,10 @@ impl App {
 
     fn view_select(&self, options: &Vec<String>) -> Html {
         html! {
-            <select>
+            <select class="select parameters">
                 {for options.iter().map(|opcion| {
                     html! {
-                        <option value={opcion}>{opcion}</option>
+                        <option class="option-parameters" value={opcion}>{opcion}</option>
                     }
                 })}
             </select>
@@ -230,24 +335,6 @@ pub enum Filter {
     ShapeMap,
 }
 
-impl Filter {
-    fn update(&self,state:&mut State) -> bool{
-        state.filter = self.clone();
-        match *self { 
-            Filter::RDF => state.edit_value = state.rdf_value.clone(),
-            Filter::ShEx => state.edit_value = state.shex_value.clone(),
-            Filter::ShapeMap => state.edit_value = state.shapemap_value.clone(),
-        }
-        return true;
-    }
-}
-
 impl State {
-    fn update_edit_value(&mut self) {
-        match self.filter {
-            Filter::RDF => self.edit_value = self.rdf_value.clone(),
-            Filter::ShEx => self.edit_value = self.shex_value.clone(),
-            Filter::ShapeMap => self.edit_value = self.shapemap_value.clone(),
-        }
-    }
+
 }
