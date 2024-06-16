@@ -1,8 +1,11 @@
+use std::convert::TryInto;
 // use std::ffi::c_void;
 use std::vec;
 
 use log::*;
-use serde_derive::{Deserialize, Serialize};
+use reqwasm::http::Request;
+use serde::de::value;
+use serde::{Deserialize, Serialize};
 use strum_macros::{EnumIter, ToString};
 use wasm_bindgen::prelude::*;
 use web_sys::js_sys::wasm_bindgen;
@@ -90,22 +93,25 @@ pub struct State {
     filter: Filter,
     show_result: bool,
     scroll_needed: bool, 
-    rdf_value:String,
-    shex_value:String,
     shapemap_value:String,
     edit_value: String,
     search_text: String,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct ExampleData {
+    rdf: String,
+    shex: String,
+    shapemap: String
+}
+
 pub enum Msg {
-    SetFilter(Filter),
-    ShowRDFProperties,
     Validate,
-    UpdateInput(String),
     UpdateSearch(String),
     LoadExample,
     Nope
 }
+
 
 impl Component for App {
     type Message = Msg;
@@ -118,8 +124,6 @@ impl Component for App {
             show_result:false,
             scroll_needed: false, 
             edit_value: "".into(),
-            rdf_value:"".into(),
-            shex_value:"".into(),
             shapemap_value:"".into(),
             search_text: "".into(),
         };
@@ -156,45 +160,25 @@ impl Component for App {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::SetFilter(filter) => {
-                filter.update(&mut self.state);
-            }
-            Msg::ShowRDFProperties => {
-                let yate_value = getYate();
-                let yashe_value = getYashe();
-                web_sys::console::log_1(&yate_value.into());
-                web_sys::console::log_1(&yashe_value.into());
-            }
             Msg::Validate => {
                 print!("Incompleto");           
                 self.state.show_result=true;
                 self.state.scroll_needed = true; 
             }
-            Msg::UpdateInput(val) =>{
-                println!("Input: {}", val);
-                self.state.edit_value = val.clone();
-                match self.state.filter {
-                    Filter::RDF => self.state.rdf_value = val.clone(),
-                    Filter::ShEx => self.state.shex_value = val.clone(),
-                    Filter::ShapeMap => self.state.shapemap_value = val.clone(),
-                }
-                //self.state.update_edit_value();
-            },
             Msg::UpdateSearch(text) => {
                 self.state.search_text = text.to_lowercase();
             },
-            Msg::LoadExample => {
-                // let file_content = fs::read_to_string("archivo.json").expect("Unable to read file");
-
-                setYate("");
-                setYashe("yashe load example");
+            Msg::LoadExample =>{
+                setYate("PREFIX : <http://example.org/>\nPREFIX schema: <http://schema.org/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nPREFIX foaf: <http://xmlns.com/foaf/0.1/>\n\n:alice schema:name \"Alice\" ;\n       schema:gender schema:Female ;\n       schema:knows :bob .\n\n:bob schema:gender schema:Male ;\n       schema:name \"Robert\" ;\n       schema:birthDate \"1980-03-10\"^^xsd:date .\n\n:carol schema:name \"Carol\" ;\n       schema:gender \"unspecified\" ;\n       foaf:name \"Carol\" .\n\n:dave schema:name \"Dave\" ;\n       schema:gender \"XYY\" ;\n       schema:birthDate \"1980-01-01\"^^xsd:date .\n\n:emily schema:name \"Emily\" ;\n       schema:alternateName \"Emilee\" ;\n       schema:gender schema:Female .\n\n:frank schema:name \"Frank\" ;\n       schema:gender schema:Male .\n\n:grace schema:name \"Grace\" ;\n       schema:gender schema:Male ;\n       schema:knows :bob .\n\n:harold schema:name \"Harold\" ;\n        schema:gender schema:Male ;\n        schema:knows :grace .");
+                setYashe("PREFIX : <http://example.org/>\nPREFIX schema: <http://schema.org/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n\n:User {\n  schema:name xsd:string ;\n  schema:birthDate xsd:date? ;\n  schema:gender [ schema:Male schema:Female ] OR xsd:string ;\n  schema:knows IRI @:User*\n}");
+                self.state.shapemap_value = ":alice@:User,:bob@:User,:carol@:User,:emily@:User,:frank@:User,:grace@:User,:harold@:User".to_string();
             },
             Msg::Nope => {}
         }
         //self.storage.store(KEY, Json(&self.state.entries));
         true
     }
-
+    
     fn rendered(&mut self, first_render: bool) {
         if self.state.scroll_needed && !first_render {
            scrollToElement("result");
@@ -215,12 +199,12 @@ impl Component for App {
                     <header class="header">
                     <nav>
                             <div class="wrapper">
-                                <div class="logo"><a href="#">{"RDF VALIDATOR"}</a></div>
+                                <div class="logo"><a href="#">{"WASM - RDF VALIDATOR"}</a></div>
                                 <input type="radio" name="slider" id="menu-btn" />
                                 <input type="radio" name="slider" id="close-btn" />
                                 <ul class="nav-links">
                                     <label for="close-btn" class="btn close-btn"><i class="fas fa-times"></i></label>
-                                    <li><a onclick=self.link.callback(|_| Msg::LoadExample)>{"CARGAR EJEMPLO"}</a></li>
+                                    <li class="menu-btn"><a onclick=self.link.callback(|_| Msg::LoadExample)>{"CARGAR EJEMPLO"}</a></li>
                                 </ul>
                                 <label for="menu-btn" class="btn menu-btn"><i class="fas fa-bars"></i></label>
                             </div>
@@ -230,16 +214,16 @@ impl Component for App {
                         <div class="editors-container">
                             <div class="yashe-container">
                                 <h3 class="title-editor">{"RDF"}</h3>
-                                <textarea id="editor-yashe"></textarea>
+                                <textarea id="editor-yate"></textarea>
                                 { self.view_parameters(Filter::RDF) }
                                 <div class="shapemap-container">
                                     <h3 class="title-editor">{"ShapeMap"}</h3>
-                                    <textarea class="shapemap-editor"></textarea>
+                                    <textarea class="shapemap-editor">{self.state.shapemap_value.clone()}</textarea>
                                 </div>
                             </div>
                             <div class="yate-container">
                                 <h3 class="title-editor">{"ShEx"}</h3>
-                                <textarea id="editor-yate"></textarea>
+                                <textarea id="editor-yashe"></textarea>
                                 { self.view_parameters(Filter::ShEx) }
                             </div>
                         </div>
@@ -262,15 +246,12 @@ impl Component for App {
 }
 
 impl App {
-    fn view_filter(&self, filter: Filter) -> Html {
-        let flt = filter.clone();
-        html! {
-            <button class=if self.state.filter == flt { "selected" } else { "not-selected" } onclick=self.link.callback(move |_| Msg::SetFilter(flt.clone()))>
-                    { filter }
-            </button>
-        }
-    }
 
+    // async fn loadFile(){
+    //     let resp = Request::get("../static/example.json").send().await.unwrap();
+    //     print!("{}", resp.status());
+    // }
+    
     fn render_result(&self) -> Html {
         info!("Show result: {}", self.state.show_result);
         if self.state.show_result {
@@ -302,8 +283,11 @@ impl App {
         let rows = vec![
             (":alice", ":User", "Valid"),
             (":bob", ":User", "Valid"),
-            (":carol", ":User", "Invalid"),
+            (":carol", ":User", "Valid"),
             (":emily", ":User", "Invalid"),
+            (":frank", ":User", "Invalid"),
+            (":grace", ":User", "Invalid"),
+            (":harold", ":User", "Invalid")
         ];
 
         rows.into_iter()
@@ -351,24 +335,6 @@ pub enum Filter {
     ShapeMap,
 }
 
-impl Filter {
-    fn update(&self,state:&mut State) -> bool{
-        state.filter = self.clone();
-        match *self { 
-            Filter::RDF => state.edit_value = state.rdf_value.clone(),
-            Filter::ShEx => state.edit_value = state.shex_value.clone(),
-            Filter::ShapeMap => state.edit_value = state.shapemap_value.clone(),
-        }
-        return true;
-    }
-}
-
 impl State {
-    fn update_edit_value(&mut self) {
-        match self.filter {
-            Filter::RDF => self.edit_value = self.rdf_value.clone(),
-            Filter::ShEx => self.edit_value = self.shex_value.clone(),
-            Filter::ShapeMap => self.edit_value = self.shapemap_value.clone(),
-        }
-    }
+
 }

@@ -187,7 +187,7 @@ th {
   display: flex;
   flex-direction: column;
   width: 100%;
-  margin-top: 5rem;
+  margin-top: 3rem;
 }
 
 .parameters{
@@ -198,18 +198,18 @@ th {
 .shapemap-editor{
   width: 60rem;
   height: 15rem;
+  font-size: 1.4rem;
 }
 
 .title-editor{
   color: white;
 }
 
-//NAV 
+// SELECT
+/* Remove IE arrow */
 .option-parameters{
   background-color: #686c74 !important;
 }
-// SELECT
-/* Remove IE arrow */
 select::-ms-expand {
   display: none;
 }
@@ -287,6 +287,10 @@ option {
 }
 
 //NAV
+.menu-btn{
+  cursor: pointer;
+}
+
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600;700&display=swap');
 *{
   margin: 0;
