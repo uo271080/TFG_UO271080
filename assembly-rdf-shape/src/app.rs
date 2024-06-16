@@ -3,16 +3,12 @@ use std::vec;
 
 use log::*;
 use serde_derive::{Deserialize, Serialize};
-use strum::IntoEnumIterator;
 use strum_macros::{EnumIter, ToString};
 use wasm_bindgen::prelude::*;
 use web_sys::js_sys::wasm_bindgen;
 use yew::prelude::*;
 use yew::services::storage::{Area, StorageService};
 
-// use shex_validation::Validator;
-// use shex_ast::{ast::Schema as SchemaJson, compiled::compiled_schema::CompiledSchema};
-// use shex_compact::ShExParser;
 
 const KEY: &str = "yew.todomvc.self";
 
@@ -27,6 +23,24 @@ pub struct App {
 
 #[wasm_bindgen(inline_js = "
 import YATE from 'perfectkb-yate';
+export function setYate(input) {
+    return window.yateInstance.setValue(input);
+}
+")]
+extern "C" {
+    fn setYate(input: &str);
+}
+
+#[wasm_bindgen(inline_js = "
+export function setYashe(input) {
+    return window.yasheInstance.setValue(input);
+}
+")]
+extern "C" {
+    fn setYashe(input: &str);
+}
+
+#[wasm_bindgen(inline_js = "
 export function getYate() {
 	return window.yateInstance.getValue();
 }
@@ -36,7 +50,6 @@ extern "C" {
 }
 
 #[wasm_bindgen(inline_js = "
-import YATE from 'perfectkb-yate';
 export function getYashe() {
 	return window.yasheInstance.getValue();
 }
@@ -90,6 +103,7 @@ pub enum Msg {
     Validate,
     UpdateInput(String),
     UpdateSearch(String),
+    LoadExample,
     Nope
 }
 
@@ -169,6 +183,12 @@ impl Component for App {
             Msg::UpdateSearch(text) => {
                 self.state.search_text = text.to_lowercase();
             },
+            Msg::LoadExample => {
+                // let file_content = fs::read_to_string("archivo.json").expect("Unable to read file");
+
+                setYate("");
+                setYashe("yashe load example");
+            },
             Msg::Nope => {}
         }
         //self.storage.store(KEY, Json(&self.state.entries));
@@ -193,14 +213,21 @@ impl Component for App {
             <div class="todomvc-wrapper">
                 <section class="app">
                     <header class="header">
-                        <h1 class="title">{ "RDF Shape Validator" }</h1>
+                    <nav>
+                            <div class="wrapper">
+                                <div class="logo"><a href="#">{"RDF VALIDATOR"}</a></div>
+                                <input type="radio" name="slider" id="menu-btn" />
+                                <input type="radio" name="slider" id="close-btn" />
+                                <ul class="nav-links">
+                                    <label for="close-btn" class="btn close-btn"><i class="fas fa-times"></i></label>
+                                    <li><a onclick=self.link.callback(|_| Msg::LoadExample)>{"CARGAR EJEMPLO"}</a></li>
+                                </ul>
+                                <label for="menu-btn" class="btn menu-btn"><i class="fas fa-bars"></i></label>
+                            </div>
+                        </nav>
                     </header>
                     <div class="content">
-                        // <div class="multi-button">
-                        //     { for Filter::iter().map(|flt| self.view_filter(flt)) }
-                        // </div>
-                            // { self.view_input() }
-                        <div class="yatshe-editors">
+                        <div class="editors-container">
                             <div class="yashe-container">
                                 <h3 class="title-editor">{"RDF"}</h3>
                                 <textarea id="editor-yashe"></textarea>
@@ -217,17 +244,15 @@ impl Component for App {
                             </div>
                         </div>
                         <div class="footer-options">
-                        <button class="clear-completed validate-btn" onclick=self.link.callback(|_| Msg::Validate)>
-                            { format!("Validate") }
+                        <button class="clear-completed button-27" onclick=self.link.callback(|_| Msg::Validate)>
+                            { format!("VALIDAR") }
                         </button>
-                        // <button class="clear-completed validate-btn" onclick=self.link.callback(|_| Msg::ShowRDFProperties)>
+                        // <button class="clear-completed validate-btn" onclick=self.link.callback(|_| Msg::LoadExample)>
                         //     { format!("Testing") }
                         // </button>
                         </div>
                         <div  id="result" class="result">
                             {self.render_result()}
-                        </div>
-                        <div class="bg-blue w-10">
                         </div>
                     </div>
                 </section>
@@ -249,39 +274,21 @@ impl App {
     fn render_result(&self) -> Html {
         info!("Show result: {}", self.state.show_result);
         if self.state.show_result {
-            return html! {
+            let search_text = self.state.search_text.clone();
+            html! {
                 <div class="result">
-                <div>
-                <input type="text" class="search" placeholder="Buscar..."/>
-                <button>{"CSV"}</button>
-                </div>
-                <table>
-                    <tr>
-                        <th>{"Node"}</th>
-                        <th>{"Shape"}</th>
-                        <th>{"Status"}</th>
-                    </tr>
-                    <tr class="valid">
-                        <td>{":alice"}</td>
-                        <td>{":User"}</td>
-                        <td>{"Valid"}</td>
-                    </tr>
-                    <tr class="valid">
-                        <td>{":bob"}</td>
-                        <td>{":User"}</td>
-                        <td>{"Valid"}</td>
-                    </tr>
-                    <tr class="invalid">
-                        <td>{":carol"}</td>
-                        <td>{":User"}</td>
-                        <td>{"Invalid"}</td>
-                    </tr>
-                    <tr class="invalid">
-                        <td>{":emily"}</td>
-                        <td>{":User"}</td>
-                        <td>{"Invalid"}</td>
-                    </tr>
-                </table>
+                    <div>
+                        <input type="text" class="search" placeholder="Buscar..." oninput=self.link.callback(|e: InputData| Msg::UpdateSearch(e.value)) />
+                        <button>{"CSV"}</button>
+                    </div>
+                    <table>
+                        <tr>
+                            <th>{"Node"}</th>
+                            <th>{"Shape"}</th>
+                            <th>{"Status"}</th>
+                        </tr>
+                        { self.render_rows(&search_text) }
+                    </table>
                 </div>
             }
         } else {
@@ -291,21 +298,27 @@ impl App {
         }
     }
 
-    // fn view_input(&self) -> Html {
-    //     info!("{}", &self.state.edit_value);
-    //     info!("RDF VALUE: {}", self.state.rdf_value);
-    //     info!("SHEX VALUE: {}", self.state.shex_value);
-    //     info!("SHAPE MAP VALUE: {}", self.state.shapemap_value);
-    //     html! {
-    //         <textarea id="showcase" 
-    //         class="editor" 
-    //         placeholder="Escribe tu código aquí..."
-    //         value=&self.state.edit_value
-    //                oninput=self.link.callback(|e: InputData| Msg::UpdateInput(e.value))
-    //         >
-    //         </textarea>
-    //     }
-    // }
+    fn render_rows(&self, search_text: &str) -> Html {
+        let rows = vec![
+            (":alice", ":User", "Valid"),
+            (":bob", ":User", "Valid"),
+            (":carol", ":User", "Invalid"),
+            (":emily", ":User", "Invalid"),
+        ];
+
+        rows.into_iter()
+            .filter(|(node, _, _)| node.contains(search_text))
+            .map(|(node, shape, status)| {
+                html! {
+                    <tr class={ if status == "Valid" { "valid" } else { "invalid" } }>
+                        <td>{node}</td>
+                        <td>{shape}</td>
+                        <td>{status}</td>
+                    </tr>
+                }
+            })
+            .collect()
+    }
 
     fn view_parameters(&self,filter: Filter) -> Html {
         match filter {
@@ -317,10 +330,10 @@ impl App {
 
     fn view_select(&self, options: &Vec<String>) -> Html {
         html! {
-            <select class="parameters">
+            <select class="select parameters">
                 {for options.iter().map(|opcion| {
                     html! {
-                        <option value={opcion}>{opcion}</option>
+                        <option class="option-parameters" value={opcion}>{opcion}</option>
                     }
                 })}
             </select>
