@@ -1,14 +1,15 @@
-use std::convert::TryInto;
-// use std::ffi::c_void;
+mod api;
+mod examples_manager;
+
 use std::vec;
 
 use log::*;
 use reqwasm::http::Request;
-use serde::de::value;
 use serde::{Deserialize, Serialize};
 use strum_macros::{EnumIter, ToString};
 use wasm_bindgen::prelude::*;
-use web_sys::js_sys::wasm_bindgen;
+use web_sys::console;
+use web_sys::js_sys::{wasm_bindgen, JsString};
 use yew::prelude::*;
 use yew::services::storage::{Area, StorageService};
 
@@ -162,8 +163,16 @@ impl Component for App {
         match msg {
             Msg::Validate => {
                 print!("Incompleto");           
-                self.state.show_result=true;
+                self.state.show_result = true;
                 self.state.scroll_needed = true; 
+                let rdf_content = getYate();
+                let shex_content = getYashe();
+                let shapemap_content = self.state.shapemap_value.clone();
+                let link = self.link.clone();
+                wasm_bindgen_futures::spawn_local(async move {
+                    let result = api::call_validation_api(rdf_content, shex_content, shapemap_content).await;
+                    // link.send_message(Msg::ValidationResult(result)); // Manejando la respuesta de validación
+                });
             }
             Msg::UpdateSearch(text) => {
                 self.state.search_text = text.to_lowercase();
@@ -204,7 +213,7 @@ impl Component for App {
                                 <input type="radio" name="slider" id="close-btn" />
                                 <ul class="nav-links">
                                     <label for="close-btn" class="btn close-btn"><i class="fas fa-times"></i></label>
-                                    <li class="menu-btn"><a onclick=self.link.callback(|_| Msg::LoadExample)>{"CARGAR EJEMPLO"}</a></li>
+                                    <li class="menu-btn"><a class="load-example" onclick=self.link.callback(|_| Msg::LoadExample)>{"CARGAR EJEMPLO"}</a></li>
                                 </ul>
                                 <label for="menu-btn" class="btn menu-btn"><i class="fas fa-bars"></i></label>
                             </div>
@@ -247,6 +256,42 @@ impl Component for App {
 
 impl App {
 
+    async fn callValidationAPI(){ 
+        let request_body = r#"
+{
+  "data": {
+    "content": "PREFIX :       <http://example.org/>\nPREFIX schema: <http://schema.org/>\nPREFIX xsd:    <http://www.w3.org/2001/XMLSchema#>\nPREFIX foaf:   <http://xmlns.com/foaf/0.1/>\n\n:alice schema:name           \"Alice\" ;            # %* Passes{:User} *)\n       schema:gender         schema:Female ;\n       schema:knows          :bob .\n\n:bob   schema:gender         schema:Male ;        # %* Passes{:User} *)\n       schema:name           \"Robert\";\n       schema:birthDate      \"1980-03-10\"^^xsd:date .\n\n:carol schema:name           \"Carol\" ;            # %* Passes{:User} *)\n       schema:gender         \"unspecified\" ;\n       foaf:name             \"Carol\" .\n\n:dave  schema:name           \"Dave\";         # %* Fails{:User} *)\n       schema:gender         \"XYY\";          #\n       schema:birthDate      1980 .          # %* 1980 is not an xsd:date *)\n\n:emily schema:name \"Emily\", \"Emilee\" ;       # %* Fails{:User} *)\n       schema:gender         schema:Female . # %* too many schema:names *)\n\n:frank foaf:name             \"Frank\" ;       # %* Fails{:User} *)\n       schema:gender:        schema:Male .   # %* missing schema:name *)\n\n:grace schema:name           \"Grace\" ;       # %* Fails{:User} *)\n       schema:gender         schema:Male ;   #\n       schema:knows          _:x .           # %* _:x is not an IRI *)\n\n:harold schema:name         \"Harold\" ;    # %* Fails{:User} *)\n        schema:gender       schema:Male ;\n        schema:knows        :grace .      # %* :grace does not conform to :User *)",
+    "source": "byText",
+    "format": "turtle",
+    "inference": "NONE"
+  },
+  "schema": {
+    "content": "\nPREFIX :       <http://example.org/>\nPREFIX schema: <http://schema.org/>\nPREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>\n\n:User {\n  schema:name          xsd:string  ;\n  schema:birthDate     xsd:date?  ;\n  schema:gender        [ schema:Male schema:Female ] OR xsd:string ;\n  schema:knows         IRI @:User*\n}\n  ",
+    "source": "byText",
+    "format": "ShExC",
+    "engine": "ShEx"
+  },
+  "triggerMode": {
+    "type": "ShapeMap",
+    "shape-map": {
+      "content": ":alice@:User,:bob@:User,:carol@:User,:emily@:User,:frank@:User,:grace@:User,:harold@:User",
+      "source": "byText",
+      "format": "Compact"
+    }
+  }
+}
+"#;
+
+        // wasm_bindgen_futures::spawn_local(async move {
+        //     let validation_endpoint = format!(
+        //         "https://api.rdfshape.weso.es/api/schema/validate"
+        //     );
+        // let validation_result = Request::post(&validation_endpoint).body(request_body).send().await.unwrap().text().await.unwrap();
+        
+        // console::log_1(&JsString::from(validation_result));
+
+        // });
+    }
     // async fn loadFile(){
     //     let resp = Request::get("../static/example.json").send().await.unwrap();
     //     print!("{}", resp.status());
