@@ -46,21 +46,23 @@ pub struct RequestBody {
 }
 
 #[derive(Serialize, Deserialize)]
+#[derive(Clone)]
 #[serde(rename_all="camelCase")]
 pub struct ValidationResult {
     pub result:Result
 }
 
 #[derive(Serialize, Deserialize)]
+#[derive(Clone)]
 #[serde(rename_all="camelCase")]
 pub struct Result{
     pub valid: bool,
     pub message: String,
-    #[serde(rename = "shapeMap")]
     pub shape_map: Vec<ShapeMapEntry>,
 }
 
 #[derive(Serialize, Deserialize)]
+#[derive(Clone)]
 #[serde(rename_all="camelCase")]
 pub struct ShapeMapEntry {
     pub node: String,
@@ -68,8 +70,6 @@ pub struct ShapeMapEntry {
     pub status: String,
     pub reason: Option<String>,
 }
-
-
 
 pub fn create_request_body(rdf_content:String,shex_content:String,shapemap_content:String) -> RequestBody{
     let data = Data {
@@ -104,29 +104,51 @@ pub fn create_request_body(rdf_content:String,shex_content:String,shapemap_conte
     };  
 
     let request_body_json = serde_json::to_string(&request_body).unwrap();
-    console::log_1(&request_body_json.into());
+    // console::log_1(&request_body_json.into());
 
     return request_body;
 
 }
 
-pub async fn call_validation_api(rdf_content:String,shex_content:String,shapemap_content:String) {
+pub async fn call_validation_api(rdf_content: String, shex_content: String, shapemap_content: String) -> ValidationResult {
 
     let request_body = create_request_body(rdf_content, shex_content, shapemap_content);
-    
+  
     let validation_endpoint = "https://api.rdfshape.weso.es/api/schema/validate";
     let request_body_json = serde_json::to_string(&request_body).unwrap();
+  
+    let response = Request::post(validation_endpoint)
+        .body(request_body_json)
+        .send()
+        .await
+        .unwrap();
 
-    spawn_local(async move {
-        let validation_result:ValidationResult = Request::post(validation_endpoint)
-            .body(request_body_json)
-            .send()
-            .await
-            .unwrap()
-            .json()
-            .await
-            .unwrap();
-        
-            console::log_1(&JsString::from(serde_json::to_string(&validation_result).unwrap()));
-    });
+        let validation_result: ValidationResult = response.json().await.unwrap();
+
+        let formatted_result = format_shape_maps(validation_result); 
+      
+        let printvresult = serde_json::to_string(&formatted_result).unwrap();
+        console::log_1(&printvresult.into());
+      
+        formatted_result
+}
+
+
+pub fn format_shape_maps(response: ValidationResult) -> ValidationResult {
+    let mut formatted_result = response.clone();
+    let shapes = &mut formatted_result.result.shape_map;
+    for mut entry in shapes.iter_mut() {
+      entry.node = extract_last_segment(&entry.node);
+      entry.shape = extract_last_segment(&entry.shape);
+    }
+    formatted_result
+}
+
+fn extract_last_segment(uri: &str) -> String {
+    if let Some(start) = uri.rfind('/') {
+        if let Some(end) = uri.find('>') {
+            return uri[start + 1..end].to_string();
+        }
+    }
+    uri.to_string() 
 }
