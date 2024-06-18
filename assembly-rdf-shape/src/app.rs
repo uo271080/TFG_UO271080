@@ -1,7 +1,8 @@
 mod api;
 mod examples_manager;
 
-use std::vec;
+use std::ptr::null;
+use std::{any, vec};
 
 use log::*;
 use reqwasm::http::Request;
@@ -97,6 +98,7 @@ pub struct State {
     shapemap_value:String,
     edit_value: String,
     search_text: String,
+    validation_result:Option<api::ValidationResult>
 }
 
 #[derive(Serialize, Deserialize)]
@@ -108,6 +110,7 @@ pub struct ExampleData {
 
 pub enum Msg {
     Validate,
+    ValidationResult(api::ValidationResult),
     UpdateSearch(String),
     LoadExample,
     Nope
@@ -127,6 +130,7 @@ impl Component for App {
             edit_value: "".into(),
             shapemap_value:"".into(),
             search_text: "".into(),
+            validation_result:None
         };
         App {
             link,
@@ -171,9 +175,12 @@ impl Component for App {
                 let link = self.link.clone();
                 wasm_bindgen_futures::spawn_local(async move {
                     let result = api::call_validation_api(rdf_content, shex_content, shapemap_content).await;
-                    // link.send_message(Msg::ValidationResult(result)); // Manejando la respuesta de validación
+                    link.send_message(Msg::ValidationResult(result)); // Manejando la respuesta de validación
                 });
-            }
+            },
+            Msg::ValidationResult(result) => {
+                self.state.validation_result = Some(result);  // Añadir esta línea
+            },
             Msg::UpdateSearch(text) => {
                 self.state.search_text = text.to_lowercase();
             },
@@ -325,30 +332,24 @@ impl App {
     }
 
     fn render_rows(&self, search_text: &str) -> Html {
-        let rows = vec![
-            (":alice", ":User", "Valid"),
-            (":bob", ":User", "Valid"),
-            (":carol", ":User", "Valid"),
-            (":emily", ":User", "Invalid"),
-            (":frank", ":User", "Invalid"),
-            (":grace", ":User", "Invalid"),
-            (":harold", ":User", "Invalid")
-        ];
-
-        rows.into_iter()
-            .filter(|(node, _, _)| node.contains(search_text))
-            .map(|(node, shape, status)| {
-                html! {
-                    <tr class={ if status == "Valid" { "valid" } else { "invalid" } }>
-                        <td>{node}</td>
-                        <td>{shape}</td>
-                        <td>{status}</td>
-                    </tr>
-                }
-            })
-            .collect()
+        if let Some(result) = &self.state.validation_result {
+            result.result.shape_map.iter()
+                .filter(|entry| entry.node.contains(search_text))
+                .map(|entry| {
+                    html! {
+                        <tr class={ if entry.status == "conformant" { "valid" } else { "invalid" } }>
+                            <td>{ &entry.node }</td>
+                            <td>{ &entry.shape }</td>
+                            <td>{ &entry.status }</td>
+                        </tr>
+                    }
+                })
+                .collect()
+        } else {
+            html! {}
+        }
     }
-
+    
     fn view_parameters(&self,filter: Filter) -> Html {
         match filter {
             Filter::RDF => self.view_select(&self.rdf_parameters),
@@ -367,9 +368,7 @@ impl App {
                 })}
             </select>
         }
-    }
-
-    
+    }    
 
 }
 
