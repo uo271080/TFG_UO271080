@@ -1,14 +1,16 @@
-use std::convert::TryInto;
-// use std::ffi::c_void;
-use std::vec;
+mod api;
+mod examples_manager;
+
+use std::ptr::null;
+use std::{any, vec};
 
 use log::*;
 use reqwasm::http::Request;
-use serde::de::value;
 use serde::{Deserialize, Serialize};
 use strum_macros::{EnumIter, ToString};
 use wasm_bindgen::prelude::*;
-use web_sys::js_sys::wasm_bindgen;
+use web_sys::console;
+use web_sys::js_sys::{wasm_bindgen, JsString};
 use yew::prelude::*;
 use yew::services::storage::{Area, StorageService};
 
@@ -96,6 +98,7 @@ pub struct State {
     shapemap_value:String,
     edit_value: String,
     search_text: String,
+    validation_result:Option<api::ValidationResult>
 }
 
 #[derive(Serialize, Deserialize)]
@@ -107,6 +110,7 @@ pub struct ExampleData {
 
 pub enum Msg {
     Validate,
+    ValidationResult(api::ValidationResult),
     UpdateSearch(String),
     LoadExample,
     Nope
@@ -126,6 +130,7 @@ impl Component for App {
             edit_value: "".into(),
             shapemap_value:"".into(),
             search_text: "".into(),
+            validation_result:None
         };
         App {
             link,
@@ -162,9 +167,20 @@ impl Component for App {
         match msg {
             Msg::Validate => {
                 print!("Incompleto");           
-                self.state.show_result=true;
+                self.state.show_result = true;
                 self.state.scroll_needed = true; 
-            }
+                let rdf_content = getYate();
+                let shex_content = getYashe();
+                let shapemap_content = self.state.shapemap_value.clone();
+                let link = self.link.clone();
+                wasm_bindgen_futures::spawn_local(async move {
+                    let result = api::call_validation_api(rdf_content, shex_content, shapemap_content).await;
+                    link.send_message(Msg::ValidationResult(result)); // Manejando la respuesta de validación
+                });
+            },
+            Msg::ValidationResult(result) => {
+                self.state.validation_result = Some(result);  // Añadir esta línea
+            },
             Msg::UpdateSearch(text) => {
                 self.state.search_text = text.to_lowercase();
             },
@@ -204,7 +220,7 @@ impl Component for App {
                                 <input type="radio" name="slider" id="close-btn" />
                                 <ul class="nav-links">
                                     <label for="close-btn" class="btn close-btn"><i class="fas fa-times"></i></label>
-                                    <li class="menu-btn"><a onclick=self.link.callback(|_| Msg::LoadExample)>{"CARGAR EJEMPLO"}</a></li>
+                                    <li class="menu-btn"><a class="load-example" onclick=self.link.callback(|_| Msg::LoadExample)>{"CARGAR EJEMPLO"}</a></li>
                                 </ul>
                                 <label for="menu-btn" class="btn menu-btn"><i class="fas fa-bars"></i></label>
                             </div>
@@ -247,6 +263,42 @@ impl Component for App {
 
 impl App {
 
+    async fn callValidationAPI(){ 
+        let request_body = r#"
+{
+  "data": {
+    "content": "PREFIX :       <http://example.org/>\nPREFIX schema: <http://schema.org/>\nPREFIX xsd:    <http://www.w3.org/2001/XMLSchema#>\nPREFIX foaf:   <http://xmlns.com/foaf/0.1/>\n\n:alice schema:name           \"Alice\" ;            # %* Passes{:User} *)\n       schema:gender         schema:Female ;\n       schema:knows          :bob .\n\n:bob   schema:gender         schema:Male ;        # %* Passes{:User} *)\n       schema:name           \"Robert\";\n       schema:birthDate      \"1980-03-10\"^^xsd:date .\n\n:carol schema:name           \"Carol\" ;            # %* Passes{:User} *)\n       schema:gender         \"unspecified\" ;\n       foaf:name             \"Carol\" .\n\n:dave  schema:name           \"Dave\";         # %* Fails{:User} *)\n       schema:gender         \"XYY\";          #\n       schema:birthDate      1980 .          # %* 1980 is not an xsd:date *)\n\n:emily schema:name \"Emily\", \"Emilee\" ;       # %* Fails{:User} *)\n       schema:gender         schema:Female . # %* too many schema:names *)\n\n:frank foaf:name             \"Frank\" ;       # %* Fails{:User} *)\n       schema:gender:        schema:Male .   # %* missing schema:name *)\n\n:grace schema:name           \"Grace\" ;       # %* Fails{:User} *)\n       schema:gender         schema:Male ;   #\n       schema:knows          _:x .           # %* _:x is not an IRI *)\n\n:harold schema:name         \"Harold\" ;    # %* Fails{:User} *)\n        schema:gender       schema:Male ;\n        schema:knows        :grace .      # %* :grace does not conform to :User *)",
+    "source": "byText",
+    "format": "turtle",
+    "inference": "NONE"
+  },
+  "schema": {
+    "content": "\nPREFIX :       <http://example.org/>\nPREFIX schema: <http://schema.org/>\nPREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>\n\n:User {\n  schema:name          xsd:string  ;\n  schema:birthDate     xsd:date?  ;\n  schema:gender        [ schema:Male schema:Female ] OR xsd:string ;\n  schema:knows         IRI @:User*\n}\n  ",
+    "source": "byText",
+    "format": "ShExC",
+    "engine": "ShEx"
+  },
+  "triggerMode": {
+    "type": "ShapeMap",
+    "shape-map": {
+      "content": ":alice@:User,:bob@:User,:carol@:User,:emily@:User,:frank@:User,:grace@:User,:harold@:User",
+      "source": "byText",
+      "format": "Compact"
+    }
+  }
+}
+"#;
+
+        // wasm_bindgen_futures::spawn_local(async move {
+        //     let validation_endpoint = format!(
+        //         "https://api.rdfshape.weso.es/api/schema/validate"
+        //     );
+        // let validation_result = Request::post(&validation_endpoint).body(request_body).send().await.unwrap().text().await.unwrap();
+        
+        // console::log_1(&JsString::from(validation_result));
+
+        // });
+    }
     // async fn loadFile(){
     //     let resp = Request::get("../static/example.json").send().await.unwrap();
     //     print!("{}", resp.status());
@@ -280,30 +332,24 @@ impl App {
     }
 
     fn render_rows(&self, search_text: &str) -> Html {
-        let rows = vec![
-            (":alice", ":User", "Valid"),
-            (":bob", ":User", "Valid"),
-            (":carol", ":User", "Valid"),
-            (":emily", ":User", "Invalid"),
-            (":frank", ":User", "Invalid"),
-            (":grace", ":User", "Invalid"),
-            (":harold", ":User", "Invalid")
-        ];
-
-        rows.into_iter()
-            .filter(|(node, _, _)| node.contains(search_text))
-            .map(|(node, shape, status)| {
-                html! {
-                    <tr class={ if status == "Valid" { "valid" } else { "invalid" } }>
-                        <td>{node}</td>
-                        <td>{shape}</td>
-                        <td>{status}</td>
-                    </tr>
-                }
-            })
-            .collect()
+        if let Some(result) = &self.state.validation_result {
+            result.result.shape_map.iter()
+                .filter(|entry| entry.node.contains(search_text))
+                .map(|entry| {
+                    html! {
+                        <tr class={ if entry.status == "conformant" { "valid" } else { "invalid" } }>
+                            <td>{ &entry.node }</td>
+                            <td>{ &entry.shape }</td>
+                            <td>{ &entry.status }</td>
+                        </tr>
+                    }
+                })
+                .collect()
+        } else {
+            html! {}
+        }
     }
-
+    
     fn view_parameters(&self,filter: Filter) -> Html {
         match filter {
             Filter::RDF => self.view_select(&self.rdf_parameters),
@@ -322,9 +368,7 @@ impl App {
                 })}
             </select>
         }
-    }
-
-    
+    }    
 
 }
 
