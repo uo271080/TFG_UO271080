@@ -58,12 +58,13 @@ body {
   width: 60%;
 }
 
+
 .validate-btn{
   border-radius: 0 !important;
   background-color: #00ff868f;
   width: 60%;
-  margin: auto;
-  margin-top: 3rem;
+  margin-top: auto;
+  width: 100%;
 }
 
 .validate-btn:hover {
@@ -124,13 +125,30 @@ body {
   color: white;
 }
 
-.result{
-  margin: 2rem;
+.result-container{
   width: 100%;
+  text-align: center;
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 30px 60px -12px inset, rgba(0, 0, 0, 0.3) 0px 18px 36px -18px inset;
+  background-color: #283c49;
+  margin-top: 10rem;
+}
+
+.result{
+  margin: auto !important;
+  margin-top: 7rem !important;
+  margin-bottom: 7rem !important;
+  margin: 2rem;
+  width: 60%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;  
+}
+
+.result-options{
+  display: flex;
+  flex-direction: row;
+  margin-left: auto;
 }
 
 .search{
@@ -139,7 +157,7 @@ body {
 }
 
 table {
-  width: 60%;
+  width: 100%;
   border-collapse: collapse;
   color:black;
 }
@@ -176,10 +194,15 @@ th {
   margin-top: 10rem;
 }
 
-.yashe-container .yate-container{
+.yashe-container {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.yate-container{
+  display: flex;
+  flex-direction: column;
   flex-wrap: wrap;
 }
 
@@ -244,9 +267,13 @@ option {
   color: #f39c12;
 }
 
+.validate-btn-container{
+  margin-top: auto;
+}
 // BUTTON VALIDATE
 /* CSS */
 .button-27 {
+  width: 100% !important;
   appearance: none;
   border-radius: 0 !important;
   background-color: #00ff868f;
@@ -304,7 +331,7 @@ nav{
   position: fixed;
   z-index: 99;
   width: 100%;
-  
+  box-shadow: rgba(0, 0, 0, 0.3) 0px 19px 38px, rgba(0, 0, 0, 0.22) 0px 15px 12px;
   background: #214467;
 }
 nav .wrapper{
