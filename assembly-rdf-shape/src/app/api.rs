@@ -138,10 +138,20 @@ pub fn format_shape_maps(response: ValidationResult) -> ValidationResult {
     let mut formatted_result = response.clone();
     let shapes = &mut formatted_result.result.shape_map;
     for mut entry in shapes.iter_mut() {
-      entry.node = extract_last_segment(&entry.node);
-      entry.shape = extract_last_segment(&entry.shape);
+      entry.node = ":".to_owned()+&extract_last_segment(&entry.node);
+      entry.shape =  ":".to_owned()+&extract_last_segment(&entry.shape);
+      entry.status = format_status(&entry.status);
     }
     formatted_result
+}
+
+fn format_status(status:&str) -> String{
+    if status == "conformant"{
+        return "Valid".to_string();
+    }
+    else{
+        return "Invalid".to_string();
+    }
 }
 
 fn extract_last_segment(uri: &str) -> String {

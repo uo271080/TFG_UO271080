@@ -94,7 +94,7 @@ extern "C" {
 pub struct State {
     filter: Filter,
     show_result: bool,
-    scroll_needed: bool, 
+    scroll_needed: bool,
     shapemap_value:String,
     edit_value: String,
     search_text: String,
@@ -112,10 +112,10 @@ pub enum Msg {
     Validate,
     ValidationResult(api::ValidationResult),
     UpdateSearch(String),
+    UpdateShapeMapValue(String),
     LoadExample,
     Nope
 }
-
 
 impl Component for App {
     type Message = Msg;
@@ -126,7 +126,7 @@ impl Component for App {
         let state: State = State {
             filter: Filter::RDF,
             show_result:false,
-            scroll_needed: false, 
+            scroll_needed: false,
             edit_value: "".into(),
             shapemap_value:"".into(),
             search_text: "".into(),
@@ -166,9 +166,9 @@ impl Component for App {
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::Validate => {
-                print!("Incompleto");           
+                print!("Incompleto");
                 self.state.show_result = true;
-                self.state.scroll_needed = true; 
+                self.state.scroll_needed = true;
                 let rdf_content = getYate();
                 let shex_content = getYashe();
                 let shapemap_content = self.state.shapemap_value.clone();
@@ -178,6 +178,9 @@ impl Component for App {
                     link.send_message(Msg::ValidationResult(result)); // Manejando la respuesta de validación
                 });
             },
+            Msg::UpdateShapeMapValue(new_value) => {
+                self.state.shapemap_value = new_value;
+            },
             Msg::ValidationResult(result) => {
                 self.state.validation_result = Some(result);  // Añadir esta línea
             },
@@ -185,20 +188,54 @@ impl Component for App {
                 self.state.search_text = text.to_lowercase();
             },
             Msg::LoadExample =>{
-                setYate("PREFIX : <http://example.org/>\nPREFIX schema: <http://schema.org/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nPREFIX foaf: <http://xmlns.com/foaf/0.1/>\n\n:alice schema:name \"Alice\" ;\n       schema:gender schema:Female ;\n       schema:knows :bob .\n\n:bob schema:gender schema:Male ;\n       schema:name \"Robert\" ;\n       schema:birthDate \"1980-03-10\"^^xsd:date .\n\n:carol schema:name \"Carol\" ;\n       schema:gender \"unspecified\" ;\n       foaf:name \"Carol\" .\n\n:dave schema:name \"Dave\" ;\n       schema:gender \"XYY\" ;\n       schema:birthDate \"1980-01-01\"^^xsd:date .\n\n:emily schema:name \"Emily\" ;\n       schema:alternateName \"Emilee\" ;\n       schema:gender schema:Female .\n\n:frank schema:name \"Frank\" ;\n       schema:gender schema:Male .\n\n:grace schema:name \"Grace\" ;\n       schema:gender schema:Male ;\n       schema:knows :bob .\n\n:harold schema:name \"Harold\" ;\n        schema:gender schema:Male ;\n        schema:knows :grace .");
+                let yate = r#"PREFIX :       <http://example.org/>
+PREFIX schema: <http://schema.org/>
+PREFIX xsd:    <http://www.w3.org/2001/XMLSchema#>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
+
+:alice schema:name           "Alice" ;            # %* Passes{:User} *)
+       schema:gender         schema:Female ;
+       schema:knows          :bob .
+
+:bob   schema:gender         schema:Male ;        # %* Passes{:User} *)
+       schema:name           "Robert";
+       schema:birthDate      "1980-03-10"^^xsd:date .
+
+:carol schema:name           "Carol" ;            # %* Passes{:User} *)
+       schema:gender         "unspecified" ;
+       foaf:name             "Carol" .
+
+:dave  schema:name           "Dave";         # %* Fails{:User} *)
+       schema:gender         "XYY";          #
+       schema:birthDate      1980 .          # %* 1980 is not an xsd:date *)
+
+:emily schema:name "Emily", "Emilee" ;       # %* Fails{:User} *)
+       schema:gender         schema:Female . # %* too many schema:names *)
+
+:frank foaf:name             "Frank" ;       # %* Fails{:User} *)
+       schema:gender:        schema:Male .   # %* missing schema:name *)
+
+:grace schema:name           "Grace" ;       # %* Fails{:User} *)
+       schema:gender         schema:Male ;   #
+       schema:knows          _:x .           # %* _:x is not an IRI *)
+
+:harold schema:name         "Harold" ;    # %* Fails{:User} *)
+        schema:gender       schema:Male ;
+        schema:knows        :grace .      # %* :grace does not conform to :User *)
+    "#;
+                setYate(&yate);
                 setYashe("PREFIX : <http://example.org/>\nPREFIX schema: <http://schema.org/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n\n:User {\n  schema:name xsd:string ;\n  schema:birthDate xsd:date? ;\n  schema:gender [ schema:Male schema:Female ] OR xsd:string ;\n  schema:knows IRI @:User*\n}");
                 self.state.shapemap_value = ":alice@:User,:bob@:User,:carol@:User,:emily@:User,:frank@:User,:grace@:User,:harold@:User".to_string();
             },
             Msg::Nope => {}
         }
-        //self.storage.store(KEY, Json(&self.state.entries));
         true
     }
-    
+
     fn rendered(&mut self, first_render: bool) {
         if self.state.scroll_needed && !first_render {
            scrollToElement("result");
-            self.state.scroll_needed = false; 
+            self.state.scroll_needed = false;
         }
         if(first_render){
             initializeYate();
@@ -234,24 +271,30 @@ impl Component for App {
                                 { self.view_parameters(Filter::RDF) }
                                 <div class="shapemap-container">
                                     <h3 class="title-editor">{"ShapeMap"}</h3>
-                                    <textarea class="shapemap-editor">{self.state.shapemap_value.clone()}</textarea>
+                                    <textarea class="shapemap-editor" oninput=self.link.callback(|e: InputData| Msg::UpdateShapeMapValue(e.value))>
+                                        {self.state.shapemap_value.clone()}
+                                    </textarea>
                                 </div>
                             </div>
                             <div class="yate-container">
                                 <h3 class="title-editor">{"ShEx"}</h3>
                                 <textarea id="editor-yashe"></textarea>
-                                { self.view_parameters(Filter::ShEx) }
+                                <div>
+                                    { self.view_parameters(Filter::ShEx) }
+                                </div>
+                                <div style="margin-top: auto;">
+                                    <button class="clear-completed button-27" onclick=self.link.callback(|_| Msg::Validate)>
+                                        { format!("VALIDAR") }
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div class="footer-options">
-                        <button class="clear-completed button-27" onclick=self.link.callback(|_| Msg::Validate)>
-                            { format!("VALIDAR") }
-                        </button>
                         // <button class="clear-completed validate-btn" onclick=self.link.callback(|_| Msg::LoadExample)>
                         //     { format!("Testing") }
                         // </button>
                         </div>
-                        <div  id="result" class="result">
+                        <div class="result-container">
                             {self.render_result()}
                         </div>
                     </div>
@@ -263,7 +306,7 @@ impl Component for App {
 
 impl App {
 
-    async fn callValidationAPI(){ 
+    async fn callValidationAPI(){
         let request_body = r#"
 {
   "data": {
@@ -294,7 +337,7 @@ impl App {
         //         "https://api.rdfshape.weso.es/api/schema/validate"
         //     );
         // let validation_result = Request::post(&validation_endpoint).body(request_body).send().await.unwrap().text().await.unwrap();
-        
+
         // console::log_1(&JsString::from(validation_result));
 
         // });
@@ -303,17 +346,13 @@ impl App {
     //     let resp = Request::get("../static/example.json").send().await.unwrap();
     //     print!("{}", resp.status());
     // }
-    
+
     fn render_result(&self) -> Html {
         info!("Show result: {}", self.state.show_result);
         if self.state.show_result {
             let search_text = self.state.search_text.clone();
             html! {
-                <div class="result">
-                    <div>
-                        <input type="text" class="search" placeholder="Buscar..." oninput=self.link.callback(|e: InputData| Msg::UpdateSearch(e.value)) />
-                        <button>{"CSV"}</button>
-                    </div>
+                <div class="result" id="result">
                     <table>
                         <tr>
                             <th>{"Node"}</th>
@@ -322,10 +361,14 @@ impl App {
                         </tr>
                         { self.render_rows(&search_text) }
                     </table>
+                    <div class="result-options">
+                        <input type="text" class="search" placeholder="Buscar..." oninput=self.link.callback(|e: InputData| Msg::UpdateSearch(e.value)) />
+                        <button>{"CSV"}</button>
+                    </div>
                 </div>
             }
         } else {
-            html! {  
+            html! {
                 <></>
             }
         }
@@ -333,23 +376,27 @@ impl App {
 
     fn render_rows(&self, search_text: &str) -> Html {
         if let Some(result) = &self.state.validation_result {
-            result.result.shape_map.iter()
+            let mut entries: Vec<_> = result.result.shape_map.iter()
                 .filter(|entry| entry.node.contains(search_text))
-                .map(|entry| {
-                    html! {
-                        <tr class={ if entry.status == "conformant" { "valid" } else { "invalid" } }>
-                            <td>{ &entry.node }</td>
-                            <td>{ &entry.shape }</td>
-                            <td>{ &entry.status }</td>
-                        </tr>
-                    }
-                })
-                .collect()
+                .collect();
+
+            entries.sort_by(|a, b| b.status.cmp(&a.status));
+
+            entries.into_iter().map(|entry| {
+                html! {
+                    <tr class={ if entry.status == "Valid" { "valid" } else { "invalid" } }>
+                        <td>{ &entry.node }</td>
+                        <td>{ &entry.shape }</td>
+                        <td>{ &entry.status }</td>
+                    </tr>
+                }
+            }).collect()
         } else {
             html! {}
         }
     }
-    
+
+
     fn view_parameters(&self,filter: Filter) -> Html {
         match filter {
             Filter::RDF => self.view_select(&self.rdf_parameters),
@@ -368,7 +415,7 @@ impl App {
                 })}
             </select>
         }
-    }    
+    }
 
 }
 
