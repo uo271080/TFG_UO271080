@@ -85,7 +85,23 @@ extern "C" {
     fn initializeYashe();
 }
 
-#[wasm_bindgen(inline_js = "export function scrollToElement(id) { const element = document.getElementById(id); if(element) element.scrollIntoView({ behavior: 'smooth' }); }")]
+#[wasm_bindgen(inline_js = "
+export function scrollToElement(id) {
+  const element = document.getElementById(id);
+  if (element) {
+    const elementRect = element.getBoundingClientRect();
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+
+    // Calculate scroll position for smooth scrolling to element's midpoint
+    const scrollY = elementRect.top + window.pageYOffset - (viewportHeight / 2);
+
+    element.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center', // Ensure vertical centering
+    });
+  }
+}
+")]
 extern "C" {
     fn scrollToElement(id: &str);
 }
@@ -98,7 +114,8 @@ pub struct State {
     shapemap_value:String,
     edit_value: String,
     search_text: String,
-    validation_result:Option<api::ValidationResult>
+    validation_result:Option<api::ValidationResult>,
+    api_error:String
 }
 
 #[derive(Serialize, Deserialize)]
@@ -110,10 +127,11 @@ pub struct ExampleData {
 
 pub enum Msg {
     Validate,
-    ValidationResult(api::ValidationResult),
+    ValidationResult(api::ValidationResult,String),
     UpdateSearch(String),
     UpdateShapeMapValue(String),
     LoadExample,
+    CloseAlert,
     Nope
 }
 
@@ -130,7 +148,8 @@ impl Component for App {
             edit_value: "".into(),
             shapemap_value:"".into(),
             search_text: "".into(),
-            validation_result:None
+            validation_result:None,
+            api_error:"".into()
         };
         App {
             link,
@@ -167,6 +186,8 @@ impl Component for App {
         match msg {
             Msg::Validate => {
                 print!("Incompleto");
+                self.state.api_error = "".to_string();
+                self.state.validation_result = Default::default();
                 self.state.show_result = true;
                 self.state.scroll_needed = true;
                 let rdf_content = getYate();
@@ -175,14 +196,22 @@ impl Component for App {
                 let link = self.link.clone();
                 wasm_bindgen_futures::spawn_local(async move {
                     let result = api::call_validation_api(rdf_content, shex_content, shapemap_content).await;
-                    link.send_message(Msg::ValidationResult(result)); // Manejando la respuesta de validación
+                    link.send_message(Msg::ValidationResult(result.0,result.1)); // Manejando la respuesta de validación
                 });
+            },
+            Msg::CloseAlert  =>{
+                self.state.api_error="".to_string();
             },
             Msg::UpdateShapeMapValue(new_value) => {
                 self.state.shapemap_value = new_value;
             },
-            Msg::ValidationResult(result) => {
-                self.state.validation_result = Some(result);  // Añadir esta línea
+            Msg::ValidationResult(result,error) => {
+                if(!error.is_empty()){
+                    self.state.api_error = error;
+                }
+                else{
+                    self.state.validation_result = Some(result);  
+                }
             },
             Msg::UpdateSearch(text) => {
                 self.state.search_text = text.to_lowercase();
@@ -349,10 +378,15 @@ impl App {
 
     fn render_result(&self) -> Html {
         info!("Show result: {}", self.state.show_result);
-        if self.state.show_result {
+        info!("Show result: {}", self.state.api_error);
+
+        if self.state.show_result && self.state.api_error.is_empty() {
             let search_text = self.state.search_text.clone();
             html! {
                 <div class="result" id="result">
+                // <div class="spinner-border" role="status">
+                //     <span class="visually-hidden"></span>
+                // </div>
                     <table>
                         <tr>
                             <th>{"Node"}</th>
@@ -363,11 +397,18 @@ impl App {
                     </table>
                     <div class="result-options">
                         <input type="text" class="search" placeholder="Buscar..." oninput=self.link.callback(|e: InputData| Msg::UpdateSearch(e.value)) />
-                        <button>{"CSV"}</button>
+                        // <button>{"CSV"}</button>
                     </div>
                 </div>
             }
-        } else {
+        } else if !self.state.api_error.is_empty(){
+            html!{
+                <div class="alert-error">
+                    {"Error en la validación. Revise las entradas."}
+                    <button class={"close-btn "} onclick=self.link.callback(|_| Msg::CloseAlert)>{ "X" }</button>
+                </div>
+            }   
+        }else {
             html! {
                 <></>
             }
