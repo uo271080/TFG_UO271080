@@ -303,6 +303,7 @@ PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
                                     <textarea class="shapemap-editor" oninput=self.link.callback(|e: InputData| Msg::UpdateShapeMapValue(e.value))>
                                         {self.state.shapemap_value.clone()}
                                     </textarea>
+                                    { self.view_parameters(Filter::ShapeMap) }
                                 </div>
                             </div>
                             <div class="yate-container">
@@ -440,15 +441,17 @@ impl App {
 
     fn view_parameters(&self,filter: Filter) -> Html {
         match filter {
-            Filter::RDF => self.view_select(&self.rdf_parameters),
-            Filter::ShEx => self.view_select(&self.shex_parameters),
-            Filter::ShapeMap => self.view_select(&self.shapemap_parameters),
+            Filter::RDF => self.view_select(&self.rdf_parameters,"rdf".to_string()),
+            Filter::ShEx => self.view_select(&self.shex_parameters,"shex".to_string()),
+            Filter::ShapeMap => self.view_select(&self.shapemap_parameters,"shapemap".to_string()),
         }
     }
 
-    fn view_select(&self, options: &Vec<String>) -> Html {
+    fn view_select(&self, options: &Vec<String>,filter:String) -> Html {
+        let select_class = format!("select parameters param-{}", filter);
+        let id = format!("select-{}",filter);
         html! {
-            <select class="select parameters">
+            <select class={select_class} id={id}>
                 {for options.iter().map(|opcion| {
                     html! {
                         <option class="option-parameters" value={opcion}>{opcion}</option>
