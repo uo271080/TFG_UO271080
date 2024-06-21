@@ -58,12 +58,13 @@ body {
   width: 60%;
 }
 
+
 .validate-btn{
   border-radius: 0 !important;
   background-color: #00ff868f;
   width: 60%;
-  margin: auto;
-  margin-top: 3rem;
+  margin-top: auto;
+  width: 100%;
 }
 
 .validate-btn:hover {
@@ -124,22 +125,41 @@ body {
   color: white;
 }
 
-.result{
-  margin: 2rem;
+.result-container{
   width: 100%;
+  text-align: center;
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 30px 60px -12px inset, rgba(0, 0, 0, 0.3) 0px 18px 36px -18px inset;
+  background-color: #283c49;
+  margin-top: 10rem;
+}
+
+.result{
+  margin: auto !important;
+  margin-top: 7rem !important;
+  margin-bottom: 7rem !important;
+  margin: 2rem;
+  width: 60%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;  
 }
 
+.result-options{
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: row;
+  margin-left: auto;
+}
+
 .search{
+  height: 2rem;
   width: 20rem;
   margin-bottom: 1rem;
 }
 
 table {
-  width: 60%;
+  width: 100%;
   border-collapse: collapse;
   color:black;
 }
@@ -176,10 +196,15 @@ th {
   margin-top: 10rem;
 }
 
-.yashe-container .yate-container{
+.yashe-container {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.yate-container{
+  display: flex;
+  flex-direction: column;
   flex-wrap: wrap;
 }
 
@@ -244,9 +269,13 @@ option {
   color: #f39c12;
 }
 
+.validate-btn-container{
+  margin-top: auto;
+}
 // BUTTON VALIDATE
 /* CSS */
 .button-27 {
+  width: 100% !important;
   appearance: none;
   border-radius: 0 !important;
   background-color: #00ff868f;
@@ -288,8 +317,18 @@ option {
 
 //NAV
 .menu-btn{
+  color: white;
+}
+
+.load-example{
   cursor: pointer;
   color: white;
+  background-color: #328ce7
+}
+
+.load-example :hover{
+  background-color: #fafafa;
+  color: #328ce7;
 }
 
 
@@ -304,12 +343,11 @@ nav{
   position: fixed;
   z-index: 99;
   width: 100%;
-  
+  box-shadow: rgba(0, 0, 0, 0.3) 0px 19px 38px, rgba(0, 0, 0, 0.22) 0px 15px 12px;
   background: #214467;
 }
 nav .wrapper{
   position: relative;
-  max-width: 1300px;
   padding: 0px 30px;
   height: 70px;
   line-height: 70px;
@@ -340,7 +378,8 @@ nav .wrapper{
   transition: all 0.3s ease;
 }
 .nav-links li a:hover{
-  background: #3A3B3C;
+  background: #ffffff;
+  color: #328ce7 !important;
 }
 .nav-links .mobile-item{
   display: none;
@@ -552,3 +591,72 @@ nav .wrapper{
 nav input{
   display: none;
 }
+
+// MODAL ERROR
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0,0,0); /* Fallback color */
+  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+.modal-content {
+  background-color: #fefefe;
+  margin: 15% auto; /* 15% from the top and centered */
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%; /* Could be more or less, depending on screen size */
+}
+
+.close-button {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close-button:hover,
+.close-button:focus {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.alert-error{
+  font-size: 1.5rem;
+  color: white;
+  margin-top: 10rem;
+  background-color:#d50404;
+  z-index: 999;
+  width: 60%;
+  position: fixed; 
+  top: 0;
+  left: 50%; 
+  transform: translateX(-50%); 
+  padding: 20px; 
+  box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px, rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;  text-align: center; /* Texto centrado */
+  transition: opacity 0.5s ease-in-out; 
+}
+
+.close-btn {
+  position: absolute;
+  right: 10px; /* Distance from the right edge of the alert box */
+  top: 10px; /* Distance from the top edge of the alert box */
+  border: none; /* No border for the button */
+  background: none; /* No background to make it look seamless within the alert */
+  color: white; /* White text color to match the alert text */
+  font-size: 20px; /* Larger text for better visibility */
+  cursor: pointer; /* Pointer cursor on hover */
+}
+
+.close-btn:hover {
+  color: #ccc; /* Lighter color on hover for visual feedback */
+}
+
+

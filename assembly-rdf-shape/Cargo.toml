@@ -29,7 +29,10 @@ gloo = "0.2"
 version = "0.3.4"
 features = [
   'KeyboardEvent',
-  "Element"
+  "Element",
+  "FileReader",
+  "Blob",
+  "HtmlAnchorElement"
 ]
 
 [dependencies.getrandom]

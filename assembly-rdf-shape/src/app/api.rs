@@ -1,11 +1,11 @@
 // src/api.rs
 use reqwasm::http::Request;
-use wasm_bindgen_futures::spawn_local;
-use web_sys::{console, js_sys::JsString};
+
+use web_sys::console;
+
 
 // src/models.rs
 use serde::{Deserialize, Serialize};
-
 #[derive(Serialize, Deserialize)]
 pub struct Data {
     pub content: String,
@@ -45,23 +45,25 @@ pub struct RequestBody {
     pub trigger_mode: TriggerMode,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize,Default)]
 #[derive(Clone)]
 #[serde(rename_all="camelCase")]
 pub struct ValidationResult {
-    pub result:Result
+    pub result:ApiResult
 }
 
-#[derive(Serialize, Deserialize)]
+/// Respuesta del API
+#[derive(Serialize, Deserialize,Default)]
 #[derive(Clone)]
 #[serde(rename_all="camelCase")]
-pub struct Result{
+pub struct ApiResult{
     pub valid: bool,
     pub message: String,
     pub shape_map: Vec<ShapeMapEntry>,
 }
 
-#[derive(Serialize, Deserialize)]
+/// Entrada Shape Map
+#[derive(Serialize, Deserialize,Default)]
 #[derive(Clone)]
 #[serde(rename_all="camelCase")]
 pub struct ShapeMapEntry {
@@ -71,7 +73,8 @@ pub struct ShapeMapEntry {
     pub reason: Option<String>,
 }
 
-pub fn create_request_body(rdf_content:String,shex_content:String,shapemap_content:String) -> RequestBody{
+
+pub fn create_request_body(rdf_content:String,shex_content:String,shapemap_content:String) -> RequestBody{    
     let data = Data {
         content: rdf_content,
         source: "byText".to_string(),
@@ -103,47 +106,73 @@ pub fn create_request_body(rdf_content:String,shex_content:String,shapemap_conte
         trigger_mode,
     };  
 
-    let request_body_json = serde_json::to_string(&request_body).unwrap();
-    // console::log_1(&request_body_json.into());
-
     return request_body;
 
 }
 
-pub async fn call_validation_api(rdf_content: String, shex_content: String, shapemap_content: String) -> ValidationResult {
-
+pub async fn call_validation_api(rdf_content: String, shex_content: String, shapemap_content: String) -> (ValidationResult, String) {
+    let mut error_message = "".to_string();
     let request_body = create_request_body(rdf_content, shex_content, shapemap_content);
-  
+
     let validation_endpoint = "https://api.rdfshape.weso.es/api/schema/validate";
     let request_body_json = serde_json::to_string(&request_body).unwrap();
-  
+    let mut validation_result:ValidationResult = Default::default();
+
     let response = Request::post(validation_endpoint)
         .body(request_body_json)
         .send()
         .await
-        .unwrap();
+        ;
 
-        let validation_result: ValidationResult = response.json().await.unwrap();
+    match response {
+        Ok(response) =>{
+            let json: Result<ValidationResult, _> = response.json().await;
+            match json {
+                Ok(vr) => {
+                    validation_result= vr;
+                },
+                Err(e)=>{
+                    error_message = e.to_string();
+                }
+            }
+        },
+        Err(e) =>{
+            error_message = e.to_string();
+        }
+    }
 
-        let formatted_result = format_shape_maps(validation_result); 
-      
-        let printvresult = serde_json::to_string(&formatted_result).unwrap();
-        console::log_1(&printvresult.into());
-      
-        formatted_result
+    let formatted_result = format_shape_maps(validation_result); 
+    
+    let printvresult = serde_json::to_string(&formatted_result).unwrap();
+    console::log_1(&printvresult.into());
+    
+    (formatted_result,error_message)
 }
 
 
+/// Conversión de las shape maps para mostrar al usuario
 pub fn format_shape_maps(response: ValidationResult) -> ValidationResult {
     let mut formatted_result = response.clone();
     let shapes = &mut formatted_result.result.shape_map;
-    for mut entry in shapes.iter_mut() {
-      entry.node = extract_last_segment(&entry.node);
-      entry.shape = extract_last_segment(&entry.shape);
+    for entry in shapes.iter_mut() {
+      entry.node = ":".to_owned()+&extract_last_segment(&entry.node);
+      entry.shape =  ":".to_owned()+&extract_last_segment(&entry.shape);
+      entry.status = format_status(&entry.status);
     }
     formatted_result
 }
 
+/// Formatea el estado al formato deseado
+fn format_status(status:&str) -> String{
+    if status == "conformant"{
+        return "Valid".to_string();
+    }
+    else{
+        return "Invalid".to_string();
+    }
+}
+
+/// Extrae el nodo y el shape
 fn extract_last_segment(uri: &str) -> String {
     if let Some(start) = uri.rfind('/') {
         if let Some(end) = uri.find('>') {
@@ -152,3 +181,5 @@ fn extract_last_segment(uri: &str) -> String {
     }
     uri.to_string() 
 }
+
+
