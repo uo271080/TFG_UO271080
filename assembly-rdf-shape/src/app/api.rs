@@ -1,8 +1,7 @@
 // src/api.rs
 use reqwasm::http::Request;
-use wasm_bindgen::JsValue;
-use wasm_bindgen_futures::JsFuture;
-use web_sys::{console, Blob, FileReader};
+
+use web_sys::console;
 
 
 // src/models.rs
@@ -53,6 +52,7 @@ pub struct ValidationResult {
     pub result:ApiResult
 }
 
+/// Respuesta del API
 #[derive(Serialize, Deserialize,Default)]
 #[derive(Clone)]
 #[serde(rename_all="camelCase")]
@@ -62,6 +62,7 @@ pub struct ApiResult{
     pub shape_map: Vec<ShapeMapEntry>,
 }
 
+/// Entrada Shape Map
 #[derive(Serialize, Deserialize,Default)]
 #[derive(Clone)]
 #[serde(rename_all="camelCase")]
@@ -149,7 +150,7 @@ pub async fn call_validation_api(rdf_content: String, shex_content: String, shap
 }
 
 
-
+/// Conversión de las shape maps para mostrar al usuario
 pub fn format_shape_maps(response: ValidationResult) -> ValidationResult {
     let mut formatted_result = response.clone();
     let shapes = &mut formatted_result.result.shape_map;
@@ -161,6 +162,7 @@ pub fn format_shape_maps(response: ValidationResult) -> ValidationResult {
     formatted_result
 }
 
+/// Formatea el estado al formato deseado
 fn format_status(status:&str) -> String{
     if status == "conformant"{
         return "Valid".to_string();
@@ -170,6 +172,7 @@ fn format_status(status:&str) -> String{
     }
 }
 
+/// Extrae el nodo y el shape
 fn extract_last_segment(uri: &str) -> String {
     if let Some(start) = uri.rfind('/') {
         if let Some(end) = uri.find('>') {
