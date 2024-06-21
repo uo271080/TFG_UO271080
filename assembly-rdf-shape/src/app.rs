@@ -1,30 +1,52 @@
 mod api;
 mod examples_manager;
 
-use std::ptr::null;
-use std::{any, vec};
 
 use log::*;
-use reqwasm::http::Request;
 use serde::{Deserialize, Serialize};
 use strum_macros::{EnumIter, ToString};
 use wasm_bindgen::prelude::*;
-use web_sys::console;
-use web_sys::js_sys::{wasm_bindgen, JsString};
 use yew::prelude::*;
-use yew::services::storage::{Area, StorageService};
 
-
-const KEY: &str = "yew.todomvc.self";
 
 pub struct App {
     link: ComponentLink<Self>,
-    storage: StorageService,
     state: State,
     rdf_parameters:Vec<String>,
     shex_parameters:Vec<String>,
     shapemap_parameters:Vec<String>,
 }
+
+#[wasm_bindgen(inline_js = r#"
+export function exportCsv(csvContent, fileName) {
+    // Crear un Blob con el contenido del CSV
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+
+    // Crear un enlace para la descarga
+    const link = document.createElement('a');
+
+    // Usar URL.createObjectURL para obtener una URL para el blob
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', fileName);
+
+    // Asegurarse que el link sea no visible y añadirlo al DOM
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+
+    // Hacer clic en el enlace para descargar el archivo
+    link.click();
+
+    // Limpiar y remover el enlace del DOM
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+"#)]
+extern "C" {
+    pub fn exportCsv(csvContent: &str, fileName: &str);
+}
+
+
 
 #[wasm_bindgen(inline_js = "
 import YATE from 'perfectkb-yate';
@@ -132,7 +154,7 @@ pub enum Msg {
     UpdateShapeMapValue(String),
     LoadExample,
     CloseAlert,
-    Nope
+    ExportToCsv,
 }
 
 impl Component for App {
@@ -140,7 +162,7 @@ impl Component for App {
     type Properties = ();
 
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let storage = StorageService::new(Area::Local).unwrap();
+        // let storage = StorageService::new(Area::Local).unwrap();
         let state: State = State {
             filter: Filter::RDF,
             show_result:false,
@@ -153,7 +175,6 @@ impl Component for App {
         };
         App {
             link,
-            storage,
             state,
             rdf_parameters : vec![
                 "Turtle".to_string(),
@@ -202,11 +223,19 @@ impl Component for App {
             Msg::CloseAlert  =>{
                 self.state.api_error="".to_string();
             },
+            Msg::ExportToCsv =>{
+                let csv_data = App::format_csv_data(&self);
+                exportCsv(&csv_data, "export.csv");
+                // let blob = Blob::new_with_str_sequence(&wasm_bindgen::JsValue::from_serde(&[&csv_data]).unwrap()).unwrap();
+                // let url = Url::create_object_url_with_blob(&blob).unwrap();
+                // let window = window().unwrap();
+                // window.location().set_href(&url).unwrap();
+            }
             Msg::UpdateShapeMapValue(new_value) => {
                 self.state.shapemap_value = new_value;
             },
             Msg::ValidationResult(result,error) => {
-                if(!error.is_empty()){
+                if !error.is_empty(){
                     self.state.api_error = error;
                 }
                 else{
@@ -255,8 +284,7 @@ PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
                 setYate(&yate);
                 setYashe("PREFIX : <http://example.org/>\nPREFIX schema: <http://schema.org/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n\n:User {\n  schema:name xsd:string ;\n  schema:birthDate xsd:date? ;\n  schema:gender [ schema:Male schema:Female ] OR xsd:string ;\n  schema:knows IRI @:User*\n}");
                 self.state.shapemap_value = ":alice@:User,:bob@:User,:carol@:User,:emily@:User,:frank@:User,:grace@:User,:harold@:User".to_string();
-            },
-            Msg::Nope => {}
+            }
         }
         true
     }
@@ -266,7 +294,7 @@ PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
            scrollToElement("result");
             self.state.scroll_needed = false;
         }
-        if(first_render){
+        if first_render{
             initializeYate();
             initializeYashe();
         }
@@ -336,46 +364,21 @@ PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
 
 impl App {
 
-    async fn callValidationAPI(){
-        let request_body = r#"
-{
-  "data": {
-    "content": "PREFIX :       <http://example.org/>\nPREFIX schema: <http://schema.org/>\nPREFIX xsd:    <http://www.w3.org/2001/XMLSchema#>\nPREFIX foaf:   <http://xmlns.com/foaf/0.1/>\n\n:alice schema:name           \"Alice\" ;            # %* Passes{:User} *)\n       schema:gender         schema:Female ;\n       schema:knows          :bob .\n\n:bob   schema:gender         schema:Male ;        # %* Passes{:User} *)\n       schema:name           \"Robert\";\n       schema:birthDate      \"1980-03-10\"^^xsd:date .\n\n:carol schema:name           \"Carol\" ;            # %* Passes{:User} *)\n       schema:gender         \"unspecified\" ;\n       foaf:name             \"Carol\" .\n\n:dave  schema:name           \"Dave\";         # %* Fails{:User} *)\n       schema:gender         \"XYY\";          #\n       schema:birthDate      1980 .          # %* 1980 is not an xsd:date *)\n\n:emily schema:name \"Emily\", \"Emilee\" ;       # %* Fails{:User} *)\n       schema:gender         schema:Female . # %* too many schema:names *)\n\n:frank foaf:name             \"Frank\" ;       # %* Fails{:User} *)\n       schema:gender:        schema:Male .   # %* missing schema:name *)\n\n:grace schema:name           \"Grace\" ;       # %* Fails{:User} *)\n       schema:gender         schema:Male ;   #\n       schema:knows          _:x .           # %* _:x is not an IRI *)\n\n:harold schema:name         \"Harold\" ;    # %* Fails{:User} *)\n        schema:gender       schema:Male ;\n        schema:knows        :grace .      # %* :grace does not conform to :User *)",
-    "source": "byText",
-    "format": "turtle",
-    "inference": "NONE"
-  },
-  "schema": {
-    "content": "\nPREFIX :       <http://example.org/>\nPREFIX schema: <http://schema.org/>\nPREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>\n\n:User {\n  schema:name          xsd:string  ;\n  schema:birthDate     xsd:date?  ;\n  schema:gender        [ schema:Male schema:Female ] OR xsd:string ;\n  schema:knows         IRI @:User*\n}\n  ",
-    "source": "byText",
-    "format": "ShExC",
-    "engine": "ShEx"
-  },
-  "triggerMode": {
-    "type": "ShapeMap",
-    "shape-map": {
-      "content": ":alice@:User,:bob@:User,:carol@:User,:emily@:User,:frank@:User,:grace@:User,:harold@:User",
-      "source": "byText",
-      "format": "Compact"
+    fn format_csv_data(&self) -> String {
+        if let Some(result) = &self.state.validation_result {
+            let entries: Vec<_> = result.result.shape_map.iter()
+                .map(|entry| format!("{};{};{}\n", entry.node, entry.shape, entry.status))
+                .collect();
+            
+            let header = "Node,Shape,Status\n".to_string();
+            let csv_data = entries.into_iter().fold(header, |acc, line| acc + &line);
+            
+            csv_data
+        } else {
+            "".to_string()
+        }
     }
-  }
-}
-"#;
-
-        // wasm_bindgen_futures::spawn_local(async move {
-        //     let validation_endpoint = format!(
-        //         "https://api.rdfshape.weso.es/api/schema/validate"
-        //     );
-        // let validation_result = Request::post(&validation_endpoint).body(request_body).send().await.unwrap().text().await.unwrap();
-
-        // console::log_1(&JsString::from(validation_result));
-
-        // });
-    }
-    // async fn loadFile(){
-    //     let resp = Request::get("../static/example.json").send().await.unwrap();
-    //     print!("{}", resp.status());
-    // }
+    
 
     fn render_result(&self) -> Html {
         info!("Show result: {}", self.state.show_result);
@@ -398,7 +401,7 @@ impl App {
                     </table>
                     <div class="result-options">
                         <input type="text" class="search" placeholder="Buscar..." oninput=self.link.callback(|e: InputData| Msg::UpdateSearch(e.value)) />
-                        // <button>{"CSV"}</button>
+                        <button onclick=self.link.callback(|_| Msg::ExportToCsv)>{ "Export to CSV" }</button>
                     </div>
                 </div>
             }

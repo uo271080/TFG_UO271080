@@ -31,7 +31,8 @@ features = [
   'KeyboardEvent',
   "Element",
   "FileReader",
-  "Blob"
+  "Blob",
+  "HtmlAnchorElement"
 ]
 
 [dependencies.getrandom]

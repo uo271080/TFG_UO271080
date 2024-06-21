@@ -317,8 +317,18 @@ option {
 
 //NAV
 .menu-btn{
+  color: white;
+}
+
+.load-example{
   cursor: pointer;
   color: white;
+  background-color: #328ce7
+}
+
+.load-example :hover{
+  background-color: #fafafa;
+  color: #328ce7;
 }
 
 
@@ -338,7 +348,6 @@ nav{
 }
 nav .wrapper{
   position: relative;
-  max-width: 1300px;
   padding: 0px 30px;
   height: 70px;
   line-height: 70px;
@@ -369,7 +378,8 @@ nav .wrapper{
   transition: all 0.3s ease;
 }
 .nav-links li a:hover{
-  background: #3A3B3C;
+  background: #ffffff;
+  color: #328ce7 !important;
 }
 .nav-links .mobile-item{
   display: none;
