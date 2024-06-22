@@ -139,7 +139,9 @@ pub struct State {
     edit_value: String,
     search_text: String,
     validation_result:Option<api::ValidationResult>,
-    api_error:String
+    api_error:String,
+    show_reason:bool,
+    selected_shape:ShapeMapEntry
 }
 
 #[derive(Serialize, Deserialize)]
@@ -156,6 +158,8 @@ pub enum Msg {
     UpdateShapeMapValue(String),
     LoadExample,
     CloseAlert,
+    OpenModal(String,String,String),
+    CloseModal,
     ExportToCsv,
 }
 
@@ -168,12 +172,14 @@ impl Component for App {
         let state: State = State {
             filter: Filter::RDF,
             show_result:false,
+            show_reason:false,
             scroll_needed: false,
             edit_value: "".into(),
             shapemap_value:"".into(),
             search_text: "".into(),
             validation_result:None,
-            api_error:"".into()
+            api_error:"".into(),
+            selected_shape:Default::default()
         };
         App {
             link,
@@ -225,6 +231,13 @@ impl Component for App {
             },
             Msg::CloseAlert  =>{
                 self.state.api_error="".to_string();
+            },
+            Msg::OpenModal(node,status,reason)=>{
+                self.state.show_result=true;
+                // self.state.selected_shape=shape;
+            },
+            Msg::CloseModal=>{
+                self.state.show_result=false;
             },
             Msg::ExportToCsv =>{
                 let csv_data = App::format_csv_data(&self);
@@ -360,6 +373,7 @@ PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
                         </div>
                     </div>
                 </section>
+                {self.render_modal()}
             </div>
         }
     }
@@ -386,13 +400,22 @@ impl App {
     }
     
     
-    fn render_modal(&self,shape:ShapeMapEntry) -> Html{
-        html!{
-            <div class="reason-modal">
-                <h4>{shape.node}</h4>
-            </div>
+    fn render_modal(&self) -> Html {
+        if self.state.show_reason {
+            html! {
+                <div class="reason-modal">
+                    <h4>{&self.state.selected_shape.node}</h4>  // Use reference
+                    <div class="reason-modal-body">
+                        {&self.state.selected_shape.reason}  // Use reference
+                    </div>
+                    <button class="reason-modal-button" onclick=self.link.callback(|_| Msg::CloseModal)>{"Cerrar"}</button>
+                </div>
+            }
+        } else {
+            html! { <></> }
         }
     }
+    
 
     fn render_result(&self) -> Html {
         info!("Show result: {}", self.state.show_result);
@@ -443,15 +466,19 @@ impl App {
             entries.sort_by(|a, b| b.status.cmp(&a.status));
 
             entries.into_iter().map(|entry| {
+                let cloned_shape = entry.clone();
                 html! {
                     <tr class={ if entry.status == "Valid" { "valid" } else { "invalid" } }>
                         <td>{ &entry.node }</td>
                         <td>{ &entry.shape }</td>
                         <td class="details-row">{ &entry.status }</td>
                         <td>
-                            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModalCenter">
+                        <td>
+                        <button type="button" class="btn btn-primary"
+                            onclick=self.link.callback(move |_| Msg::OpenModal(&cloned_shape.node,&cloned_shape.shape,&cloned_shape.status))>  // Clone to own the data
                                 {"Launch demo modal"}
-                            </button>
+                        </button>
+                        </td>
                         </td>
                     </tr>
                 }
