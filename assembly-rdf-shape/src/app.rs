@@ -233,8 +233,11 @@ impl Component for App {
                 self.state.api_error="".to_string();
             },
             Msg::OpenModal(node,status,reason)=>{
-                self.state.show_result=true;
-                // self.state.selected_shape=shape;
+                print!("LLEGO A OPEN MODAL");
+                print!("{}", node);
+                print!("{}", status);
+                print!("{}", reason);
+                self.state.show_reason=true;
             },
             Msg::CloseModal=>{
                 self.state.show_result=false;
@@ -373,7 +376,6 @@ PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
                         </div>
                     </div>
                 </section>
-                {self.render_modal()}
             </div>
         }
     }
@@ -404,12 +406,15 @@ impl App {
         if self.state.show_reason {
             html! {
                 <div class="reason-modal">
-                    <h4>{&self.state.selected_shape.node}</h4>  // Use reference
-                    <div class="reason-modal-body">
-                        {&self.state.selected_shape.reason}  // Use reference
-                    </div>
-                    <button class="reason-modal-button" onclick=self.link.callback(|_| Msg::CloseModal)>{"Cerrar"}</button>
+                    <h1>{"HOLA"}</h1>
                 </div>
+                // <div class="reason-modal">
+                //     <h4>{&self.state.selected_shape.node}</h4>  // Use reference
+                //     <div class="reason-modal-body">
+                //         {&self.state.selected_shape.reason}  // Use reference
+                //     </div>
+                //     <button class="reason-modal-button" onclick=self.link.callback(|_| Msg::CloseModal)>{"Cerrar"}</button>
+                // </div>
             }
         } else {
             html! { <></> }
@@ -418,9 +423,7 @@ impl App {
     
 
     fn render_result(&self) -> Html {
-        info!("Show result: {}", self.state.show_result);
-        info!("Show result: {}", self.state.api_error);
-
+        self.render_modal();
         if self.state.show_result && self.state.api_error.is_empty() {
             let search_text = self.state.search_text.clone();
             html! {
@@ -440,6 +443,10 @@ impl App {
                     <div class="result-options">
                         <input type="text" class="search" placeholder="Buscar..." oninput=self.link.callback(|e: InputData| Msg::UpdateSearch(e.value)) />
                         <button onclick=self.link.callback(|_| Msg::ExportToCsv)>{ "Export to CSV" }</button>
+                            <label class="switch">
+                                <input type="checkbox"/>
+                                <span class="slider round"></span>
+                            </label>
                     </div>
                 </div>
             }
@@ -466,7 +473,7 @@ impl App {
             entries.sort_by(|a, b| b.status.cmp(&a.status));
 
             entries.into_iter().map(|entry| {
-                let cloned_shape = entry.clone();
+                let mut cloned_shape = entry.clone();
                 html! {
                     <tr class={ if entry.status == "Valid" { "valid" } else { "invalid" } }>
                         <td>{ &entry.node }</td>
@@ -474,9 +481,9 @@ impl App {
                         <td class="details-row">{ &entry.status }</td>
                         <td>
                         <td>
-                        <button type="button" class="btn btn-primary">
-                            // onclick=self.link.callback(move |_| Msg::OpenModal(&cloned_shape.node,&cloned_shape.shape,&cloned_shape.status))>  // Clone to own the data
-                                {"Launch demo modal"}
+                        <button type="button" class="btn"
+                            onclick=self.link.callback(move |_| Msg::OpenModal(cloned_shape.node.clone(),cloned_shape.shape.clone(),cloned_shape.status.clone()))>  // Clone to own the data
+                                {"Show"}
                         </button>
                         </td>
                         </td>
