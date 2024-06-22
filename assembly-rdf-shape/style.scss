@@ -659,4 +659,27 @@ nav input{
   color: #ccc; /* Lighter color on hover for visual feedback */
 }
 
+.details-col{
+  width: 15%;
+}
+
+.details-button {
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  background-color: #002a54;
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+
+.details-button:hover, .details-button:focus {
+  background-color: #e2e6ea;
+  color: #002a54;
+}
+
+.reason-modal{
+  margin: auto;
+  z-index: 9999;
+}
+
 

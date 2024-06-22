@@ -1,6 +1,7 @@
 // src/api.rs
 use reqwasm::http::Request;
 
+use wasm_bindgen::JsValue;
 use web_sys::console;
 
 
@@ -70,7 +71,7 @@ pub struct ShapeMapEntry {
     pub node: String,
     pub shape: String,
     pub status: String,
-    pub reason: Option<String>,
+    pub reason: String,
 }
 
 
@@ -141,8 +142,9 @@ pub async fn call_validation_api(rdf_content: String, shex_content: String, shap
         }
     }
 
-    let formatted_result = format_shape_maps(validation_result); 
-    
+
+    let formatted_result = format_shape_maps(validation_result); ;
+
     let printvresult = serde_json::to_string(&formatted_result).unwrap();
     console::log_1(&printvresult.into());
     

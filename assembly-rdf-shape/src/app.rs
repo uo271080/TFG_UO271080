@@ -1,7 +1,9 @@
 mod api;
 mod examples_manager;
+mod rdf_properties;
 
 
+use api::{ShapeMap, ShapeMapEntry};
 use log::*;
 use serde::{Deserialize, Serialize};
 use strum_macros::{EnumIter, ToString};
@@ -137,7 +139,9 @@ pub struct State {
     edit_value: String,
     search_text: String,
     validation_result:Option<api::ValidationResult>,
-    api_error:String
+    api_error:String,
+    show_reason:bool,
+    selected_shape:ShapeMapEntry
 }
 
 #[derive(Serialize, Deserialize)]
@@ -154,6 +158,8 @@ pub enum Msg {
     UpdateShapeMapValue(String),
     LoadExample,
     CloseAlert,
+    OpenModal(String,String,String),
+    CloseModal,
     ExportToCsv,
 }
 
@@ -166,12 +172,14 @@ impl Component for App {
         let state: State = State {
             filter: Filter::RDF,
             show_result:false,
+            show_reason:false,
             scroll_needed: false,
             edit_value: "".into(),
             shapemap_value:"".into(),
             search_text: "".into(),
             validation_result:None,
-            api_error:"".into()
+            api_error:"".into(),
+            selected_shape:Default::default()
         };
         App {
             link,
@@ -207,6 +215,7 @@ impl Component for App {
         match msg {
             Msg::Validate => {
                 print!("Incompleto");
+                // rdf_properties::testOxttl();
                 self.state.api_error = "".to_string();
                 self.state.validation_result = Default::default();
                 self.state.show_result = true;
@@ -222,6 +231,13 @@ impl Component for App {
             },
             Msg::CloseAlert  =>{
                 self.state.api_error="".to_string();
+            },
+            Msg::OpenModal(node,status,reason)=>{
+                self.state.show_result=true;
+                // self.state.selected_shape=shape;
+            },
+            Msg::CloseModal=>{
+                self.state.show_result=false;
             },
             Msg::ExportToCsv =>{
                 let csv_data = App::format_csv_data(&self);
@@ -314,7 +330,7 @@ PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
                                 <input type="radio" name="slider" id="close-btn" />
                                 <ul class="nav-links">
                                     <label for="close-btn" class="btn close-btn"><i class="fas fa-times"></i></label>
-                                    <li class="menu-btn"><a class="load-example" onclick=self.link.callback(|_| Msg::LoadExample)>{"CARGAR EJEMPLO"}</a></li>
+                                    <li class="menu-btn"><a class="load-example" onclick=self.link.callback(|_| Msg::LoadExample)>{"LOAD EXAMPLE"}</a></li>
                                 </ul>
                                 <label for="menu-btn" class="btn menu-btn"><i class="fas fa-bars"></i></label>
                             </div>
@@ -342,7 +358,7 @@ PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
                                 </div>
                                 <div style="margin-top: auto;">
                                     <button class="clear-completed button-27" onclick=self.link.callback(|_| Msg::Validate)>
-                                        { format!("VALIDAR") }
+                                        { format!("VALIDATE") }
                                     </button>
                                 </div>
                             </div>
@@ -357,6 +373,7 @@ PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
                         </div>
                     </div>
                 </section>
+                {self.render_modal()}
             </div>
         }
     }
@@ -366,16 +383,36 @@ impl App {
 
     fn format_csv_data(&self) -> String {
         if let Some(result) = &self.state.validation_result {
+            // Añadir el encabezado con Reason incluido
+            let header = "Node;Shape;Status;Reason\n".to_string(); // Asegúrate de que el delimitador usado en el encabezado y los datos coincida
             let entries: Vec<_> = result.result.shape_map.iter()
-                .map(|entry| format!("{};{};{}\n", entry.node, entry.shape, entry.status))
+                .map(|entry| {
+                    // Directamente se incluye entry.reason ya que ahora es un String
+                    format!("{};{};{};{}\n", entry.node, entry.shape, entry.status, entry.reason)
+                })
                 .collect();
-            
-            let header = "Node,Shape,Status\n".to_string();
+    
             let csv_data = entries.into_iter().fold(header, |acc, line| acc + &line);
-            
             csv_data
         } else {
             "".to_string()
+        }
+    }
+    
+    
+    fn render_modal(&self) -> Html {
+        if self.state.show_reason {
+            html! {
+                <div class="reason-modal">
+                    <h4>{&self.state.selected_shape.node}</h4>  // Use reference
+                    <div class="reason-modal-body">
+                        {&self.state.selected_shape.reason}  // Use reference
+                    </div>
+                    <button class="reason-modal-button" onclick=self.link.callback(|_| Msg::CloseModal)>{"Cerrar"}</button>
+                </div>
+            }
+        } else {
+            html! { <></> }
         }
     }
     
@@ -396,6 +433,7 @@ impl App {
                             <th>{"Node"}</th>
                             <th>{"Shape"}</th>
                             <th>{"Status"}</th>
+                            <th class="details-col">{"Details"}</th>
                         </tr>
                         { self.render_rows(&search_text) }
                     </table>
@@ -428,11 +466,20 @@ impl App {
             entries.sort_by(|a, b| b.status.cmp(&a.status));
 
             entries.into_iter().map(|entry| {
+                let cloned_shape = entry.clone();
                 html! {
                     <tr class={ if entry.status == "Valid" { "valid" } else { "invalid" } }>
                         <td>{ &entry.node }</td>
                         <td>{ &entry.shape }</td>
-                        <td>{ &entry.status }</td>
+                        <td class="details-row">{ &entry.status }</td>
+                        <td>
+                        <td>
+                        <button type="button" class="btn btn-primary"
+                            onclick=self.link.callback(move |_| Msg::OpenModal(&cloned_shape.node,&cloned_shape.shape,&cloned_shape.status))>  // Clone to own the data
+                                {"Launch demo modal"}
+                        </button>
+                        </td>
+                        </td>
                     </tr>
                 }
             }).collect()
@@ -442,6 +489,7 @@ impl App {
     }
 
 
+    
     fn view_parameters(&self,filter: Filter) -> Html {
         match filter {
             Filter::RDF => self.view_select(&self.rdf_parameters,"rdf".to_string()),
