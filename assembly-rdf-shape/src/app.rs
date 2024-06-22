@@ -1,8 +1,8 @@
-mod api;
+pub(crate) mod api;
 mod examples_manager;
 mod rdf_properties;
 
-
+use crate::components::{editors::Editor, header::Header, modal::Modal, result_table::ResultTable, search_bar::SearchBar};
 use api::{ShapeMap, ShapeMapEntry};
 use log::*;
 use serde::{Deserialize, Serialize};
@@ -10,36 +10,24 @@ use strum_macros::{EnumIter, ToString};
 use wasm_bindgen::prelude::*;
 use yew::prelude::*;
 
-
 pub struct App {
     link: ComponentLink<Self>,
     state: State,
-    rdf_parameters:Vec<String>,
-    shex_parameters:Vec<String>,
-    shapemap_parameters:Vec<String>,
+    rdf_parameters: Vec<String>,
+    shex_parameters: Vec<String>,
+    shapemap_parameters: Vec<String>,
 }
 
 #[wasm_bindgen(inline_js = r#"
 export function exportCsv(csvContent, fileName) {
-    // Crear un Blob con el contenido del CSV
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-
-    // Crear un enlace para la descarga
     const link = document.createElement('a');
-
-    // Usar URL.createObjectURL para obtener una URL para el blob
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
     link.setAttribute('download', fileName);
-
-    // Asegurarse que el link sea no visible y añadirlo al DOM
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
-
-    // Hacer clic en el enlace para descargar el archivo
     link.click();
-
-    // Limpiar y remover el enlace del DOM
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 }
@@ -47,8 +35,6 @@ export function exportCsv(csvContent, fileName) {
 extern "C" {
     pub fn exportCsv(csvContent: &str, fileName: &str);
 }
-
-
 
 #[wasm_bindgen(inline_js = "
 import YATE from 'perfectkb-yate';
@@ -71,7 +57,7 @@ extern "C" {
 
 #[wasm_bindgen(inline_js = "
 export function getYate() {
-	return window.yateInstance.getValue();
+    return window.yateInstance.getValue();
 }
 ")]
 extern "C" {
@@ -80,7 +66,7 @@ extern "C" {
 
 #[wasm_bindgen(inline_js = "
 export function getYashe() {
-	return window.yasheInstance.getValue();
+    return window.yasheInstance.getValue();
 }
 ")]
 extern "C" {
@@ -90,7 +76,7 @@ extern "C" {
 #[wasm_bindgen(inline_js = "
 import YATE from 'perfectkb-yate';
 export function initializeYate() {
-	var yate = YATE.fromTextArea(document.getElementById('editor-yate'), {})
+    var yate = YATE.fromTextArea(document.getElementById('editor-yate'), {})
     window.yateInstance = yate;
 }
 ")]
@@ -111,19 +97,16 @@ extern "C" {
 
 #[wasm_bindgen(inline_js = "
 export function scrollToElement(id) {
-  const element = document.getElementById(id);
-  if (element) {
-    const elementRect = element.getBoundingClientRect();
-    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-
-    // Calculate scroll position for smooth scrolling to element's midpoint
-    const scrollY = elementRect.top + window.pageYOffset - (viewportHeight / 2);
-
-    element.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center', // Ensure vertical centering
-    });
-  }
+    const element = document.getElementById(id);
+    if (element) {
+        const elementRect = element.getBoundingClientRect();
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+        const scrollY = elementRect.top + window.pageYOffset - (viewportHeight / 2);
+        element.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+        });
+    }
 }
 ")]
 extern "C" {
@@ -135,30 +118,30 @@ pub struct State {
     filter: Filter,
     show_result: bool,
     scroll_needed: bool,
-    shapemap_value:String,
+    shapemap_value: String,
     edit_value: String,
     search_text: String,
-    validation_result:Option<api::ValidationResult>,
-    api_error:String,
-    show_reason:bool,
-    selected_shape:ShapeMapEntry
+    validation_result: Option<api::ValidationResult>,
+    api_error: String,
+    show_reason: bool,
+    selected_shape: ShapeMapEntry,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct ExampleData {
     rdf: String,
     shex: String,
-    shapemap: String
+    shapemap: String,
 }
 
 pub enum Msg {
     Validate,
-    ValidationResult(api::ValidationResult,String),
+    ValidationResult(api::ValidationResult, String),
     UpdateSearch(String),
     UpdateShapeMapValue(String),
     LoadExample,
     CloseAlert,
-    OpenModal(String,String,String),
+    OpenModal(String, String, String),
     CloseModal,
     ExportToCsv,
 }
@@ -168,23 +151,22 @@ impl Component for App {
     type Properties = ();
 
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
-        // let storage = StorageService::new(Area::Local).unwrap();
         let state: State = State {
             filter: Filter::RDF,
-            show_result:false,
-            show_reason:false,
+            show_result: false,
+            show_reason: false,
             scroll_needed: false,
             edit_value: "".into(),
-            shapemap_value:"".into(),
+            shapemap_value: "".into(),
             search_text: "".into(),
-            validation_result:None,
-            api_error:"".into(),
-            selected_shape:Default::default()
+            validation_result: None,
+            api_error: "".into(),
+            selected_shape: Default::default(),
         };
         App {
             link,
             state,
-            rdf_parameters : vec![
+            rdf_parameters: vec![
                 "Turtle".to_string(),
                 "N-Triples".to_string(),
                 "N-Quads".to_string(),
@@ -196,14 +178,14 @@ impl Component for App {
                 "html-rdfa11".to_string(),
                 "html-microdata".to_string(),
             ],
-            shex_parameters : vec![
+            shex_parameters: vec![
                 "ShExC".to_string(),
                 "ShExJ".to_string(),
             ],
-            shapemap_parameters : vec![
+            shapemap_parameters: vec![
                 "Compact".to_string(),
                 "JSON".to_string(),
-            ]
+            ],
         }
     }
 
@@ -214,8 +196,6 @@ impl Component for App {
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::Validate => {
-                print!("Incompleto");
-                // rdf_properties::testOxttl();
                 self.state.api_error = "".to_string();
                 self.state.validation_result = Default::default();
                 self.state.show_result = true;
@@ -226,45 +206,41 @@ impl Component for App {
                 let link = self.link.clone();
                 wasm_bindgen_futures::spawn_local(async move {
                     let result = api::call_validation_api(rdf_content, shex_content, shapemap_content).await;
-                    link.send_message(Msg::ValidationResult(result.0,result.1)); // Manejando la respuesta de validación
+                    link.send_message(Msg::ValidationResult(result.0, result.1));
                 });
             },
-            Msg::CloseAlert  =>{
-                self.state.api_error="".to_string();
+            Msg::CloseAlert => {
+                self.state.api_error = "".to_string();
             },
-            Msg::OpenModal(node,status,reason)=>{
+            Msg::OpenModal(node, shape, reason) => {
                 print!("LLEGO A OPEN MODAL");
                 print!("{}", node);
-                print!("{}", status);
+                print!("{}", shape);
                 print!("{}", reason);
-                self.state.show_reason=true;
+                self.state.show_reason = true;
+                self.state.selected_shape = ShapeMapEntry { node, shape, status: "".to_string(), reason };
             },
-            Msg::CloseModal=>{
-                self.state.show_result=false;
+            Msg::CloseModal => {
+                self.state.show_reason = false;
             },
-            Msg::ExportToCsv =>{
+            Msg::ExportToCsv => {
                 let csv_data = App::format_csv_data(&self);
                 exportCsv(&csv_data, "export.csv");
-                // let blob = Blob::new_with_str_sequence(&wasm_bindgen::JsValue::from_serde(&[&csv_data]).unwrap()).unwrap();
-                // let url = Url::create_object_url_with_blob(&blob).unwrap();
-                // let window = window().unwrap();
-                // window.location().set_href(&url).unwrap();
-            }
+            },
             Msg::UpdateShapeMapValue(new_value) => {
                 self.state.shapemap_value = new_value;
             },
-            Msg::ValidationResult(result,error) => {
-                if !error.is_empty(){
+            Msg::ValidationResult(result, error) => {
+                if !error.is_empty() {
                     self.state.api_error = error;
-                }
-                else{
-                    self.state.validation_result = Some(result);  
+                } else {
+                    self.state.validation_result = Some(result);
                 }
             },
             Msg::UpdateSearch(text) => {
                 self.state.search_text = text.to_lowercase();
             },
-            Msg::LoadExample =>{
+            Msg::LoadExample => {
                 let yate = r#"PREFIX :       <http://example.org/>
 PREFIX schema: <http://schema.org/>
 PREFIX xsd:    <http://www.w3.org/2001/XMLSchema#>
@@ -310,14 +286,13 @@ PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
 
     fn rendered(&mut self, first_render: bool) {
         if self.state.scroll_needed && !first_render {
-           scrollToElement("result");
+            scrollToElement("result");
             self.state.scroll_needed = false;
         }
-        if first_render{
-            initializeYate();
-            initializeYashe();
-        }
-        // showYashe();
+        // if first_render {
+        //     initializeYate();
+        //     initializeYashe();
+        // }
     }
 
     fn view(&self) -> Html {
@@ -325,54 +300,24 @@ PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
         html! {
             <div class="todomvc-wrapper">
                 <section class="app">
-                    <header class="header">
-                    <nav>
-                            <div class="wrapper">
-                                <div class="logo"><a href="#">{"WASM - RDF VALIDATOR"}</a></div>
-                                <input type="radio" name="slider" id="menu-btn" />
-                                <input type="radio" name="slider" id="close-btn" />
-                                <ul class="nav-links">
-                                    <label for="close-btn" class="btn close-btn"><i class="fas fa-times"></i></label>
-                                    <li class="menu-btn"><a class="load-example" onclick=self.link.callback(|_| Msg::LoadExample)>{"LOAD EXAMPLE"}</a></li>
-                                </ul>
-                                <label for="menu-btn" class="btn menu-btn"><i class="fas fa-bars"></i></label>
-                            </div>
-                        </nav>
-                    </header>
+                    <Header on_load_example=self.link.callback(|_| Msg::LoadExample) />
                     <div class="content">
-                        <div class="editors-container">
-                            <div class="yashe-container">
-                                <h3 class="title-editor">{"RDF"}</h3>
-                                <textarea id="editor-yate"></textarea>
-                                { self.view_parameters(Filter::RDF) }
-                                <div class="shapemap-container">
-                                    <h3 class="title-editor">{"ShapeMap"}</h3>
-                                    <textarea class="shapemap-editor" oninput=self.link.callback(|e: InputData| Msg::UpdateShapeMapValue(e.value))>
-                                        {self.state.shapemap_value.clone()}
-                                    </textarea>
-                                    { self.view_parameters(Filter::ShapeMap) }
-                                </div>
-                            </div>
-                            <div class="yate-container">
-                                <h3 class="title-editor">{"ShEx"}</h3>
-                                <textarea id="editor-yashe"></textarea>
-                                <div>
-                                    { self.view_parameters(Filter::ShEx) }
-                                </div>
-                                <div style="margin-top: auto;">
-                                    <button class="clear-completed button-27" onclick=self.link.callback(|_| Msg::Validate)>
-                                        { format!("VALIDATE") }
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                        <Editor
+                            shapemap_value=self.state.shapemap_value.clone()
+                            on_update_shapemap_value=self.link.callback(Msg::UpdateShapeMapValue)
+                            on_validate=self.link.callback(|_| Msg::Validate)
+                            rdf_parameters=self.rdf_parameters.clone()
+                            shex_parameters=self.shex_parameters.clone()
+                            shapemap_parameters=self.shapemap_parameters.clone()
+                        />
                         <div class="footer-options">
-                        // <button class="clear-completed validate-btn" onclick=self.link.callback(|_| Msg::LoadExample)>
-                        //     { format!("Testing") }
-                        // </button>
                         </div>
                         <div class="result-container">
                             {self.render_result()}
+                            <div class="result-options">
+                            <SearchBar on_search=self.link.callback(Msg::UpdateSearch) />
+                            <button onclick=self.link.callback(|_| Msg::ExportToCsv)>{ "Export to CSV" }</button>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -382,143 +327,63 @@ PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
 }
 
 impl App {
-
     fn format_csv_data(&self) -> String {
         if let Some(result) = &self.state.validation_result {
-            // Añadir el encabezado con Reason incluido
-            let header = "Node;Shape;Status;Reason\n".to_string(); // Asegúrate de que el delimitador usado en el encabezado y los datos coincida
+            let header = "Node;Shape;Status;Reason\n".to_string();
             let entries: Vec<_> = result.result.shape_map.iter()
                 .map(|entry| {
-                    // Directamente se incluye entry.reason ya que ahora es un String
                     format!("{};{};{};{}\n", entry.node, entry.shape, entry.status, entry.reason.replace('\n', ""))
                 })
                 .collect();
-    
+
             let csv_data = entries.into_iter().fold(header, |acc, line| acc + &line);
             csv_data
         } else {
             "".to_string()
         }
     }
-    
-    
-    fn render_modal(&self) -> Html {
-        if self.state.show_reason {
-            html! {
-                <div class="reason-modal">
-                    <h1>{"HOLA"}</h1>
-                </div>
-                // <div class="reason-modal">
-                //     <h4>{&self.state.selected_shape.node}</h4>  // Use reference
-                //     <div class="reason-modal-body">
-                //         {&self.state.selected_shape.reason}  // Use reference
-                //     </div>
-                //     <button class="reason-modal-button" onclick=self.link.callback(|_| Msg::CloseModal)>{"Cerrar"}</button>
-                // </div>
-            }
-        } else {
-            html! { <></> }
-        }
-    }
-    
 
+    
     fn render_result(&self) -> Html {
-        self.render_modal();
-        if self.state.show_result && self.state.api_error.is_empty() {
-            let search_text = self.state.search_text.clone();
-            html! {
-                <div class="result" id="result">
-                // <div class="spinner-border" role="status">
-                //     <span class="visually-hidden"></span>
-                // </div>
-                    <table>
-                        <tr>
-                            <th>{"Node"}</th>
-                            <th>{"Shape"}</th>
-                            <th>{"Status"}</th>
-                            <th class="details-col">{"Details"}</th>
-                        </tr>
-                        { self.render_rows(&search_text) }
-                    </table>
-                    <div class="result-options">
-                        <input type="text" class="search" placeholder="Buscar..." oninput=self.link.callback(|e: InputData| Msg::UpdateSearch(e.value)) />
-                        <button onclick=self.link.callback(|_| Msg::ExportToCsv)>{ "Export to CSV" }</button>
-                            <label class="switch">
-                                <input type="checkbox"/>
-                                <span class="slider round"></span>
-                            </label>
-                    </div>
-                </div>
-            }
-        } else if !self.state.api_error.is_empty(){
-            html!{
-                <div class="alert-error">
-                    {"Error en la validación. Revise las entradas."}
-                    <button class={"close-btn "} onclick=self.link.callback(|_| Msg::CloseAlert)>{ "X" }</button>
-                </div>
-            }   
-        }else {
-            html! {
-                <></>
-            }
-        }
-    }
-
-    fn render_rows(&self, search_text: &str) -> Html {
-        if let Some(result) = &self.state.validation_result {
-            let mut entries: Vec<_> = result.result.shape_map.iter()
-                .filter(|entry| entry.node.contains(search_text))
-                .collect();
-
-            entries.sort_by(|a, b| b.status.cmp(&a.status));
-
-            entries.into_iter().map(|entry| {
-                let mut cloned_shape = entry.clone();
-                html! {
-                    <tr class={ if entry.status == "Valid" { "valid" } else { "invalid" } }>
-                        <td>{ &entry.node }</td>
-                        <td>{ &entry.shape }</td>
-                        <td class="details-row">{ &entry.status }</td>
-                        <td>
-                        <td>
-                        <button type="button" class="btn"
-                            onclick=self.link.callback(move |_| Msg::OpenModal(cloned_shape.node.clone(),cloned_shape.shape.clone(),cloned_shape.status.clone()))>  // Clone to own the data
-                                {"Show"}
-                        </button>
-                        </td>
-                        </td>
-                    </tr>
-                }
-            }).collect()
-        } else {
-            html! {}
-        }
-    }
-
-
-    
-    fn view_parameters(&self,filter: Filter) -> Html {
-        match filter {
-            Filter::RDF => self.view_select(&self.rdf_parameters,"rdf".to_string()),
-            Filter::ShEx => self.view_select(&self.shex_parameters,"shex".to_string()),
-            Filter::ShapeMap => self.view_select(&self.shapemap_parameters,"shapemap".to_string()),
-        }
-    }
-
-    fn view_select(&self, options: &Vec<String>,filter:String) -> Html {
-        let select_class = format!("select parameters param-{}", filter);
-        let id = format!("select-{}",filter);
         html! {
-            <select class={select_class} id={id}>
-                {for options.iter().map(|opcion| {
+            <>
+                { if self.state.show_reason {
                     html! {
-                        <option class="option-parameters" value={opcion}>{opcion}</option>
+                        <>
+                            <div class="reason-modal-overlay" onclick=self.link.callback(|_| Msg::CloseModal)></div>
+                            <Modal
+                                node=self.state.selected_shape.node.clone()
+                                reason=self.state.selected_shape.reason.clone()
+                                on_close=self.link.callback(|_| Msg::CloseModal)
+                            />
+                        </>
                     }
-                })}
-            </select>
+                } else {
+                    html! { <></> }
+                }}
+                
+                { if self.state.show_result && self.state.validation_result.is_some() {
+                    let entries = self.state.validation_result.as_ref().unwrap().result.shape_map.clone();
+                    html! {
+                        <ResultTable
+                            entries=entries
+                            search_text=self.state.search_text.clone()
+                            on_open_modal=self.link.callback(|(node, shape, reason)| Msg::OpenModal(node, shape, reason))
+                        />
+                    }
+                } else if !self.state.api_error.is_empty() {
+                    html! {
+                        <div class="alert-error">
+                            {"Error en la validación. Revise las entradas."}
+                            <button class={"close-btn "} onclick=self.link.callback(|_| Msg::CloseAlert)>{ "X" }</button>
+                        </div>
+                    }
+                } else {
+                    html! { <></> }
+                }}
+            </>
         }
     }
-
 }
 
 #[derive(EnumIter, ToString, Clone, PartialEq, Serialize, Deserialize)]
@@ -526,8 +391,4 @@ pub enum Filter {
     RDF,
     ShEx,
     ShapeMap,
-}
-
-impl State {
-
 }
