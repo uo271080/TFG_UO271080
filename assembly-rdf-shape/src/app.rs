@@ -475,7 +475,7 @@ impl App {
                         <td>
                         <td>
                         <button type="button" class="btn btn-primary"
-                            onclick=self.link.callback(move |_| Msg::OpenModal(&cloned_shape.node,&cloned_shape.shape,&cloned_shape.status))>  // Clone to own the data
+                             >  // Clone to own the data
                                 {"Launch demo modal"}
                         </button>
                         </td>
