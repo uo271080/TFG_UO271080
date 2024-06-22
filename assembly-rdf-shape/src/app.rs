@@ -1,7 +1,9 @@
 mod api;
 mod examples_manager;
+mod rdf_properties;
 
 
+use api::{ShapeMap, ShapeMapEntry};
 use log::*;
 use serde::{Deserialize, Serialize};
 use strum_macros::{EnumIter, ToString};
@@ -207,6 +209,7 @@ impl Component for App {
         match msg {
             Msg::Validate => {
                 print!("Incompleto");
+                // rdf_properties::testOxttl();
                 self.state.api_error = "".to_string();
                 self.state.validation_result = Default::default();
                 self.state.show_result = true;
@@ -314,7 +317,7 @@ PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
                                 <input type="radio" name="slider" id="close-btn" />
                                 <ul class="nav-links">
                                     <label for="close-btn" class="btn close-btn"><i class="fas fa-times"></i></label>
-                                    <li class="menu-btn"><a class="load-example" onclick=self.link.callback(|_| Msg::LoadExample)>{"CARGAR EJEMPLO"}</a></li>
+                                    <li class="menu-btn"><a class="load-example" onclick=self.link.callback(|_| Msg::LoadExample)>{"LOAD EXAMPLE"}</a></li>
                                 </ul>
                                 <label for="menu-btn" class="btn menu-btn"><i class="fas fa-bars"></i></label>
                             </div>
@@ -342,7 +345,7 @@ PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
                                 </div>
                                 <div style="margin-top: auto;">
                                     <button class="clear-completed button-27" onclick=self.link.callback(|_| Msg::Validate)>
-                                        { format!("VALIDAR") }
+                                        { format!("VALIDATE") }
                                     </button>
                                 </div>
                             </div>
@@ -366,19 +369,30 @@ impl App {
 
     fn format_csv_data(&self) -> String {
         if let Some(result) = &self.state.validation_result {
+            // Añadir el encabezado con Reason incluido
+            let header = "Node;Shape;Status;Reason\n".to_string(); // Asegúrate de que el delimitador usado en el encabezado y los datos coincida
             let entries: Vec<_> = result.result.shape_map.iter()
-                .map(|entry| format!("{};{};{}\n", entry.node, entry.shape, entry.status))
+                .map(|entry| {
+                    // Directamente se incluye entry.reason ya que ahora es un String
+                    format!("{};{};{};{}\n", entry.node, entry.shape, entry.status, entry.reason)
+                })
                 .collect();
-            
-            let header = "Node,Shape,Status\n".to_string();
+    
             let csv_data = entries.into_iter().fold(header, |acc, line| acc + &line);
-            
             csv_data
         } else {
             "".to_string()
         }
     }
     
+    
+    fn render_modal(&self,shape:ShapeMapEntry) -> Html{
+        html!{
+            <div class="reason-modal">
+                <h4>{shape.node}</h4>
+            </div>
+        }
+    }
 
     fn render_result(&self) -> Html {
         info!("Show result: {}", self.state.show_result);
@@ -396,6 +410,7 @@ impl App {
                             <th>{"Node"}</th>
                             <th>{"Shape"}</th>
                             <th>{"Status"}</th>
+                            <th class="details-col">{"Details"}</th>
                         </tr>
                         { self.render_rows(&search_text) }
                     </table>
@@ -432,7 +447,12 @@ impl App {
                     <tr class={ if entry.status == "Valid" { "valid" } else { "invalid" } }>
                         <td>{ &entry.node }</td>
                         <td>{ &entry.shape }</td>
-                        <td>{ &entry.status }</td>
+                        <td class="details-row">{ &entry.status }</td>
+                        <td>
+                            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModalCenter">
+                                {"Launch demo modal"}
+                            </button>
+                        </td>
                     </tr>
                 }
             }).collect()
@@ -442,6 +462,7 @@ impl App {
     }
 
 
+    
     fn view_parameters(&self,filter: Filter) -> Html {
         match filter {
             Filter::RDF => self.view_select(&self.rdf_parameters,"rdf".to_string()),
