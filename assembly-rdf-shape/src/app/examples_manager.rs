@@ -1,20 +1,27 @@
-// use reqwasm::http::Request;
+use gloo_net::http::Request;
+use serde::{Deserialize, Serialize};
+use wasm_bindgen_futures::spawn_local;
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ExampleData {
+    pub rdf: String,
+    pub shex: String,
+    pub shapemap: String,
+}
 
-// pub async fn obtain_example() -> ExampleResult {
-  
-//     let validation_endpoint = "example.json";
-  
-//     let response = Request::get(validation_endpoint)
-//         .send()
-//         .await
-//         .unwrap();
+pub async fn load_example() -> Result<ExampleData, String> {
+    let response = Request::get("/static/example.json")
+        .send()
+        .await
+        .map_err(|err| format!("Failed to fetch: {:?}", err))?;
 
-//     let example_data: Example = response.json().await.unwrap();
-
-      
-//         // // let printvresult = serde_json::to_string(&formatted_result).unwrap();
-//         // // console::log_1(&printvresult.into());
-      
-//     formatted_result
-// }
+    if response.ok() {
+        let data: ExampleData = response
+            .json()
+            .await
+            .map_err(|err| format!("Failed to parse JSON: {:?}", err))?;
+        Ok(data)
+    } else {
+        Err(format!("Failed to load example: HTTP {}", response.status()))
+    }
+}

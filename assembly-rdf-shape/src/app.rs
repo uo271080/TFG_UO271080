@@ -2,8 +2,11 @@ pub(crate) mod api;
 mod examples_manager;
 mod rdf_properties;
 
+use std::{thread::sleep, time::Duration};
+
 use crate::components::{editors::Editor, header::Header, modal::Modal, result_table::ResultTable, search_bar::SearchBar};
 use api::ShapeMapEntry;
+use examples_manager::{load_example,ExampleData};
 use log::*;
 use serde::{Deserialize, Serialize};
 use strum_macros::{EnumIter, ToString};
@@ -107,12 +110,6 @@ pub struct State {
     is_loading: bool,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct ExampleData {
-    rdf: String,
-    shex: String,
-    shapemap: String,
-}
 
 pub enum Msg {
     Validate,
@@ -120,6 +117,7 @@ pub enum Msg {
     UpdateSearch(String),
     UpdateShapeMapValue(String),
     LoadExample,
+    ExampleLoaded(Result<ExampleData, String>),
     CloseAlert,
     OpenModal(String, String, String),
     CloseModal,
@@ -224,44 +222,23 @@ impl Component for App {
                 self.state.search_text = text.to_lowercase();
             },
             Msg::LoadExample => {
-                let yate = r#"PREFIX :       <http://example.org/>
-PREFIX schema: <http://schema.org/>
-PREFIX xsd:    <http://www.w3.org/2001/XMLSchema#>
-PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
-
-:alice schema:name           "Alice" ;            # %* Passes{:User} *)
-       schema:gender         schema:Female ;
-       schema:knows          :bob .
-
-:bob   schema:gender         schema:Male ;        # %* Passes{:User} *)
-       schema:name           "Robert";
-       schema:birthDate      "1980-03-10"^^xsd:date .
-
-:carol schema:name           "Carol" ;            # %* Passes{:User} *)
-       schema:gender         "unspecified" ;
-       foaf:name             "Carol" .
-
-:dave  schema:name           "Dave";         # %* Fails{:User} *)
-       schema:gender         "XYY";          #
-       schema:birthDate      1980 .          # %* 1980 is not an xsd:date *)
-
-:emily schema:name "Emily", "Emilee" ;       # %* Fails{:User} *)
-       schema:gender         schema:Female . # %* too many schema:names *)
-
-:frank foaf:name             "Frank" ;       # %* Fails{:User} *)
-       schema:gender:        schema:Male .   # %* missing schema:name *)
-
-:grace schema:name           "Grace" ;       # %* Fails{:User} *)
-       schema:gender         schema:Male ;   #
-       schema:knows          _:x .           # %* _:x is not an IRI *)
-
-:harold schema:name         "Harold" ;    # %* Fails{:User} *)
-        schema:gender       schema:Male ;
-        schema:knows        :grace .      # %* :grace does not conform to :User *)
-    "#;
-                setYate(&yate);
-                setYashe("PREFIX : <http://example.org/>\nPREFIX schema: <http://schema.org/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n\n:User {\n  schema:name xsd:string ;\n  schema:birthDate xsd:date? ;\n  schema:gender [ schema:Male schema:Female ] OR xsd:string ;\n  schema:knows IRI @:User*\n}");
-                self.state.shapemap_value = ":alice@:User,:bob@:User,:carol@:User,:emily@:User,:frank@:User,:grace@:User,:harold@:User".to_string();
+                let link = self.link.clone();
+                wasm_bindgen_futures::spawn_local(async move {
+                    let result = load_example().await;
+                    link.send_message(Msg::ExampleLoaded(result));
+                });
+            },
+            Msg::ExampleLoaded(result) => {
+                match result {
+                    Ok(data) => {
+                        setYate(&data.rdf);
+                        setYashe(&data.shex);
+                        self.state.shapemap_value = data.shapemap;
+                    }
+                    Err(error) => {
+                        self.state.api_error = error;
+                    }
+                }
             }
         }
         true
