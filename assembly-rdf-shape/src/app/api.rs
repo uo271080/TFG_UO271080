@@ -1,7 +1,5 @@
 // src/api.rs
 use reqwasm::http::Request;
-
-use wasm_bindgen::JsValue;
 use web_sys::console;
 
 
@@ -143,7 +141,7 @@ pub async fn call_validation_api(rdf_content: String, shex_content: String, shap
     }
 
 
-    let formatted_result = format_shape_maps(validation_result); ;
+    let formatted_result = format_shape_maps(validation_result);
 
     let printvresult = serde_json::to_string(&formatted_result).unwrap();
     console::log_1(&printvresult.into());
@@ -160,7 +158,7 @@ pub fn format_shape_maps(response: ValidationResult) -> ValidationResult {
       entry.node = ":".to_owned()+&extract_last_segment(&entry.node);
       entry.shape =  ":".to_owned()+&extract_last_segment(&entry.shape);
       entry.status = format_status(&entry.status);
-    }
+    }       
     formatted_result
 }
 

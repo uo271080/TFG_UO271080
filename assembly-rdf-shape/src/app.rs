@@ -3,7 +3,7 @@ mod examples_manager;
 mod rdf_properties;
 
 use crate::components::{editors::Editor, header::Header, modal::Modal, result_table::ResultTable, search_bar::SearchBar};
-use api::{ShapeMap, ShapeMapEntry};
+use api::ShapeMapEntry;
 use log::*;
 use serde::{Deserialize, Serialize};
 use strum_macros::{EnumIter, ToString};
@@ -73,27 +73,6 @@ extern "C" {
     fn getYashe() -> String;
 }
 
-#[wasm_bindgen(inline_js = "
-import YATE from 'perfectkb-yate';
-export function initializeYate() {
-    var yate = YATE.fromTextArea(document.getElementById('editor-yate'), {})
-    window.yateInstance = yate;
-}
-")]
-extern "C" {
-    fn initializeYate();
-}
-
-#[wasm_bindgen(inline_js = "
-import YASHE from 'yashe';
-export function initializeYashe() {
-    var yashe = YASHE.fromTextArea(document.getElementById('editor-yashe'), {});
-    window.yasheInstance = yashe;
-}
-")]
-extern "C" {
-    fn initializeYashe();
-}
 
 #[wasm_bindgen(inline_js = "
 export function scrollToElement(id) {
@@ -125,6 +104,7 @@ pub struct State {
     api_error: String,
     show_reason: bool,
     selected_shape: ShapeMapEntry,
+    is_loading: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -162,6 +142,7 @@ impl Component for App {
             validation_result: None,
             api_error: "".into(),
             selected_shape: Default::default(),
+            is_loading:false
         };
         App {
             link,
@@ -199,6 +180,7 @@ impl Component for App {
                 self.state.api_error = "".to_string();
                 self.state.validation_result = Default::default();
                 self.state.show_result = true;
+                self.state.is_loading = true;
                 self.state.scroll_needed = true;
                 let rdf_content = getYate();
                 let shex_content = getYashe();
@@ -231,6 +213,7 @@ impl Component for App {
                 self.state.shapemap_value = new_value;
             },
             Msg::ValidationResult(result, error) => {
+                self.state.is_loading = false;
                 if !error.is_empty() {
                     self.state.api_error = error;
                 } else {
@@ -289,10 +272,6 @@ PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
             scrollToElement("result");
             self.state.scroll_needed = false;
         }
-        // if first_render {
-        //     initializeYate();
-        //     initializeYashe();
-        // }
     }
 
     fn view(&self) -> Html {
@@ -347,39 +326,50 @@ impl App {
     fn render_result(&self) -> Html {
         html! {
             <>
-                { if self.state.show_reason {
+                { if self.state.is_loading {
                     html! {
-                        <>
-                            <div class="reason-modal-overlay" onclick=self.link.callback(|_| Msg::CloseModal)></div>
-                            <Modal
-                                node=self.state.selected_shape.node.clone()
-                                reason=self.state.selected_shape.reason.clone()
-                                on_close=self.link.callback(|_| Msg::CloseModal)
-                            />
-                        </>
-                    }
-                } else {
-                    html! { <></> }
-                }}
-                
-                { if self.state.show_result && self.state.validation_result.is_some() {
-                    let entries = self.state.validation_result.as_ref().unwrap().result.shape_map.clone();
-                    html! {
-                        <ResultTable
-                            entries=entries
-                            search_text=self.state.search_text.clone()
-                            on_open_modal=self.link.callback(|(node, shape, reason)| Msg::OpenModal(node, shape, reason))
-                        />
-                    }
-                } else if !self.state.api_error.is_empty() {
-                    html! {
-                        <div class="alert-error">
-                            {"Error en la validación. Revise las entradas."}
-                            <button class={"close-btn "} onclick=self.link.callback(|_| Msg::CloseAlert)>{ "X" }</button>
+                        <div class="spinner-container">
+                            <div class="spinner"></div>
                         </div>
                     }
                 } else {
-                    html! { <></> }
+                    html! {
+                        <>
+                            { if self.state.show_reason {
+                                html! {
+                                    <>
+                                        <div class="reason-modal-overlay" onclick=self.link.callback(|_| Msg::CloseModal)></div>
+                                        <Modal
+                                            node=self.state.selected_shape.node.clone()
+                                            reason=self.state.selected_shape.reason.clone()
+                                            on_close=self.link.callback(|_| Msg::CloseModal)
+                                        />
+                                    </>
+                                }
+                            } else {
+                                html! { <></> }
+                            }}
+                            { if self.state.show_result && self.state.validation_result.is_some() {
+                                let entries = self.state.validation_result.as_ref().unwrap().result.shape_map.clone();
+                                html! {
+                                    <ResultTable
+                                        entries=entries
+                                        search_text=self.state.search_text.clone()
+                                        on_open_modal=self.link.callback(|(node, shape, reason)| Msg::OpenModal(node, shape, reason))
+                                    />
+                                }
+                            } else if !self.state.api_error.is_empty() {
+                                html! {
+                                    <div class="alert-error">
+                                        {"Error en la validación. Revise las entradas."}
+                                        <button class={"close-btn "} onclick=self.link.callback(|_| Msg::CloseAlert)>{ "X" }</button>
+                                    </div>
+                                }
+                            } else {
+                                html! { <></> }
+                            }}
+                        </>
+                    }
                 }}
             </>
         }

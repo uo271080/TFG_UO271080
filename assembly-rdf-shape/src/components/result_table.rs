@@ -27,7 +27,7 @@ impl Component for ResultTable {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::OpenModal(node, shape, status) => {
+            Msg::OpenModal(node, shape, _status) => {
                 let reason = self.props.entries.iter()
                     .find(|entry| entry.node == node && entry.shape == shape)
                     .map(|entry| entry.reason.clone())

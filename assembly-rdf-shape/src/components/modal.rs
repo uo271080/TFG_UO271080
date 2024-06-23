@@ -1,3 +1,4 @@
+use log::info;
 use yew::prelude::*;
 
 #[derive(Properties, Clone, PartialEq)]
@@ -39,11 +40,16 @@ impl Component for Modal {
     }
 
     fn view(&self) -> Html {
+        info!("desde modal!!!!!!!!");
+        info!("{}", &self.props.reason);
+
+        let reason_lines: Vec<&str> = self.props.reason.split('\n').collect();
+
         html! {
             <div class="reason-modal">
                 <h4>{ &self.props.node }</h4>
                 <div class="reason-modal-body">
-                    { &self.props.reason }
+                    { for reason_lines.iter().map(|line| html! { <p>{ line }</p> }) }
                 </div>
                 <button class="reason-modal-button" onclick=self.link.callback(|_| Msg::Close)>{ "Cerrar" }</button>
             </div>
