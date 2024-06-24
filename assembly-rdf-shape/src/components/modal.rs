@@ -1,10 +1,10 @@
 use log::info;
 use yew::prelude::*;
 
-#[derive(Properties, Clone, PartialEq)]
+#[derive(Properties, Clone)]
 pub struct Props {
-    pub node: String,
-    pub reason: String,
+    pub title: String,
+    pub content: String,
     pub on_close: Callback<()>,
 }
 
@@ -41,13 +41,13 @@ impl Component for Modal {
 
     fn view(&self) -> Html {
         info!("desde modal!!!!!!!!");
-        info!("{}", &self.props.reason);
+        info!("{}", &self.props.content);
 
-        let reason_lines: Vec<&str> = self.props.reason.split('\n').collect();
+        let reason_lines: Vec<&str> = self.props.content.split('\n').collect();
 
         html! {
             <div class="reason-modal">
-                <h4>{ &self.props.node }</h4>
+                <h2>{ &self.props.title }</h2>
                 <div class="reason-modal-body">
                     { for reason_lines.iter().map(|line| html! { <p>{ line }</p> }) }
                 </div>

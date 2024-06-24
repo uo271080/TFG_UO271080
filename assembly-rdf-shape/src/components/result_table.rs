@@ -1,11 +1,11 @@
-use yew::prelude::*;
 use crate::app::api::ShapeMapEntry;
+use yew::prelude::*;
 
 #[derive(Properties, Clone)]
 pub struct Props {
     pub entries: Vec<ShapeMapEntry>,
     pub search_text: String,
-    pub on_open_modal: Callback<(String, String, String)>,
+    pub on_open_modal: Callback<(String, String)>,
 }
 
 pub struct ResultTable {
@@ -14,7 +14,7 @@ pub struct ResultTable {
 }
 
 pub enum Msg {
-    OpenModal(String, String, String),
+    OpenModal(String, String),
 }
 
 impl Component for ResultTable {
@@ -27,12 +27,15 @@ impl Component for ResultTable {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::OpenModal(node, shape, _status) => {
-                let reason = self.props.entries.iter()
+            Msg::OpenModal(node, shape) => {
+                let reason = self
+                    .props
+                    .entries
+                    .iter()
                     .find(|entry| entry.node == node && entry.shape == shape)
                     .map(|entry| entry.reason.clone())
                     .unwrap_or_default();
-                self.props.on_open_modal.emit((node, shape, reason));
+                self.props.on_open_modal.emit((node, shape));
                 true
             }
         }
@@ -56,7 +59,7 @@ impl Component for ResultTable {
                     { self.props.entries.iter()
                         .filter(|entry| entry.node.contains(&self.props.search_text))
                         .map(|entry| self.view_entry(entry))
-                        .collect::<Html>() 
+                        .collect::<Html>()
                     }
                 </table>
             </div>
@@ -73,7 +76,7 @@ impl ResultTable {
                 <td>{ &entry.shape }</td>
                 <td class="details-row">{ &entry.status }</td>
                 <td>
-                    <button type="button" class="btn" onclick=self.link.callback(move |_| Msg::OpenModal(cloned_entry.node.clone(), cloned_entry.shape.clone(), cloned_entry.status.clone()))>
+                    <button type="button" class="show-btn" onclick=self.link.callback(move |_| Msg::OpenModal(cloned_entry.node.clone(), cloned_entry.reason.clone()))>
                         { "Show" }
                     </button>
                 </td>
