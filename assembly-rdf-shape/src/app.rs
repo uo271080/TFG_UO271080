@@ -276,7 +276,6 @@ impl Component for App {
                         <div class="result-container">
                             {self.render_result()}
                             <div class="result-options">
-                            <SearchBar on_search=self.link.callback(Msg::UpdateSearch) />
                             <button onclick=self.link.callback(|_| Msg::ExportToCsv)>{ "Export to CSV" }</button>
                             </div>
                         </div>
