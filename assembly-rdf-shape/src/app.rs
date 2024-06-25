@@ -123,7 +123,7 @@ pub enum Msg {
     ValidationResult(api::ValidationResult, String),
     UpdateSearch(String),
     UpdateShapeMapValue(String),
-    LoadExample,
+    LoadExample(String),
     ExampleLoaded(Result<ExampleData, String>),
     CloseAlert,
     OpenModal(String, String),
@@ -220,15 +220,17 @@ impl Component for App {
                     self.state.api_error = error;
                 } else {
                     self.state.validation_result = Some(result);
+                    self.state.scroll_needed = true;
+                    scrollToElement("result-table");
                 }
             }
             Msg::UpdateSearch(text) => {
                 self.state.search_text = text.to_lowercase();
             }
-            Msg::LoadExample => {
+            Msg::LoadExample(file) => {
                 let link = self.link.clone();
                 wasm_bindgen_futures::spawn_local(async move {
-                    let result = load_example().await;
+                    let result = load_example(file).await;
                     link.send_message(Msg::ExampleLoaded(result));
                 });
             }
@@ -248,7 +250,7 @@ impl Component for App {
 
     fn rendered(&mut self, first_render: bool) {
         if self.state.scroll_needed && !first_render {
-            scrollToElement("result");
+            scrollToElement("result-table");
             self.state.scroll_needed = false;
         }
     }
@@ -258,7 +260,7 @@ impl Component for App {
         html! {
             <div class="todomvc-wrapper">
                 <section class="app">
-                    <Header on_load_example=self.link.callback(|_| Msg::LoadExample) />
+                    <Header on_load_example=self.link.callback(Msg::LoadExample) />
                     <div class="content">
                         <Editor
                             shapemap_value=self.state.shapemap_value.clone()
@@ -341,9 +343,9 @@ impl App {
                                 let entries = self.state.validation_result.as_ref().unwrap().result.shape_map.clone();
                                 html! {
                                     <ResultTable
-                                        entries=entries
-                                        search_text=self.state.search_text.clone()
-                                        on_open_modal=self.link.callback(|(title, content)| Msg::OpenModal(title, content))
+                                        entries={entries.clone()}
+                                        search_text={self.state.search_text.clone()}
+                                        on_open_modal={self.link.callback(|(title, content)| Msg::OpenModal(title, content))}
                                     />
                                 }
                             } else if !self.state.api_error.is_empty() {

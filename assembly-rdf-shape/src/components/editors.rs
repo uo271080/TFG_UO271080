@@ -102,8 +102,7 @@ impl Component for Editor {
             }
             Msg::ReceiveRDFAnalysis(result) => {
                 if !result.1.is_empty() {
-                    let content =
-                        format!("Status: RDF is not well-formed. Errors have been identified.",);
+                    let content = format!("Status: RDF is not well-formed.",);
                     self.props
                         .on_open_modal
                         .emit(("RDF PROPERTIES".to_string(), content));
@@ -131,8 +130,7 @@ impl Component for Editor {
             Msg::ReceiveShexAnalysis(result) => {
                 if !result.1.is_empty() {
                     self.analyzer_error = true;
-                    let content =
-                        format!("Status: Schema is not well-formed. Errors have been identified.",);
+                    let content = format!("Status: Schema is not well-formed.");
                     self.props
                         .on_open_modal
                         .emit(("SHEX PROPERTIES".to_string(), content));
