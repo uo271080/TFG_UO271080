@@ -123,7 +123,7 @@ impl Component for ResultTable {
                     <SearchBar on_search=self.link.callback(Msg::UpdateSearchText) />
                     <button onclick=self.link.callback(|_| Msg::ExportToCsv)>{ "Export to CSV" }</button>
                 </div>
-                <table>
+                <table id="result-table">
                     <tr>
                         <th>{"Node"}</th>
                         <th>{"Shape"}</th>
@@ -177,24 +177,32 @@ impl ResultTable {
 
     fn view_pagination(&self, total_entries: usize) -> Html {
         let max_page = self.max_page();
+        let is_prev_active = self.current_page > 0;
+        let is_next_active = self.current_page < max_page;
 
         html! {
-            <div class="pagination">
-                <button onclick=self.link.callback(|_| Msg::PreviousPage) disabled=self.current_page == 0>{ "Previous" }</button>
-                { (0..=max_page).map(|page| self.view_page_button(page)).collect::<Html>() }
-                <button onclick=self.link.callback(|_| Msg::NextPage) disabled=self.current_page == max_page>{ "Next" }</button>
-            </div>
+            <ul class="page">
+                <li class={ if is_prev_active { "page__btn active" } else { "page__btn" } }
+                    onclick=self.link.callback(|_| Msg::PreviousPage)>
+                    <span class="material-icons">{"chevron_left"}</span>
+                </li>
+                { for (0..=max_page).map(|page| self.view_page_button(page)) }
+                <li class={ if is_next_active { "page__btn active" } else { "page__btn" } }
+                    onclick=self.link.callback(|_| Msg::NextPage)>
+                    <span class="material-icons">{"chevron_right"}</span>
+                </li>
+            </ul>
         }
     }
 
     fn view_page_button(&self, page: usize) -> Html {
         html! {
-            <button
+            <li
+                class={ if self.current_page == page { "page__numbers active" } else { "page__numbers" } }
                 onclick=self.link.callback(move |_| Msg::GoToPage(page))
-                class={ if self.current_page == page { "active" } else { "" } }
             >
                 { page + 1 }
-            </button>
+            </li>
         }
     }
 
