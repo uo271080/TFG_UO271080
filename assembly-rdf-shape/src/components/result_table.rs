@@ -33,6 +33,7 @@ pub struct ResultTable {
     props: Props,
     current_page: usize,
     entries_per_page: usize,
+    show_all: bool,
 }
 
 pub enum Msg {
@@ -42,6 +43,7 @@ pub enum Msg {
     GoToPage(usize),
     UpdateSearchText(String),
     ExportToCsv,
+    ShowAll,
 }
 
 impl Component for ResultTable {
@@ -53,7 +55,8 @@ impl Component for ResultTable {
             link,
             props,
             current_page: 0,
-            entries_per_page: 5, // Set to 5 entries per page
+            entries_per_page: 5,
+            show_all: false,
         }
     }
 
@@ -66,28 +69,34 @@ impl Component for ResultTable {
             Msg::UpdateSearchText(text) => {
                 self.props.search_text = text;
                 self.current_page = 0;
+                self.show_all = false;
                 true
             }
             Msg::NextPage => {
-                if self.current_page < self.max_page() {
+                if self.current_page < self.max_page() && !self.show_all {
                     self.current_page += 1;
                 }
                 true
             }
             Msg::PreviousPage => {
-                if self.current_page > 0 {
+                if self.current_page > 0 && !self.show_all {
                     self.current_page -= 1;
                 }
                 true
             }
             Msg::GoToPage(page) => {
-                if page <= self.max_page() {
+                if page <= self.max_page() && !self.show_all {
                     self.current_page = page;
                 }
                 true
             }
             Msg::ExportToCsv => {
                 self.export_to_csv();
+                true
+            }
+            Msg::ShowAll => {
+                self.show_all = true;
+                self.current_page = 0;
                 true
             }
         }
@@ -99,7 +108,7 @@ impl Component for ResultTable {
     }
 
     fn view(&self) -> Html {
-        let filtered_entries = self
+        let filtered_entries: Vec<&ShapeMapEntry> = self
             .props
             .entries
             .iter()
@@ -109,19 +118,24 @@ impl Component for ResultTable {
                     .to_lowercase()
                     .contains(&self.props.search_text.to_lowercase())
             })
-            .collect::<Vec<_>>();
+            .collect();
 
-        let entries_to_display = filtered_entries
-            .iter()
-            .skip(self.current_page * self.entries_per_page)
-            .take(self.entries_per_page)
-            .collect::<Vec<_>>();
+        let entries_to_display: Vec<&ShapeMapEntry> = if self.show_all {
+            filtered_entries.clone()
+        } else {
+            filtered_entries
+                .iter()
+                .skip(self.current_page * self.entries_per_page)
+                .take(self.entries_per_page)
+                .cloned()
+                .collect()
+        };
 
         html! {
             <div class="result" id="result">
                 <div class="table-controls">
                     <SearchBar on_search=self.link.callback(Msg::UpdateSearchText) />
-                    <button onclick=self.link.callback(|_| Msg::ExportToCsv)>{ "Export to CSV" }</button>
+                    <button class="download-btn" onclick=self.link.callback(|_| Msg::ExportToCsv)> <i class="fas fa-download"></i></button>
                 </div>
                 <table id="result-table">
                     <tr>
@@ -177,8 +191,8 @@ impl ResultTable {
 
     fn view_pagination(&self, total_entries: usize) -> Html {
         let max_page = self.max_page();
-        let is_prev_active = self.current_page > 0;
-        let is_next_active = self.current_page < max_page;
+        let is_prev_active = self.current_page > 0 && !self.show_all;
+        let is_next_active = self.current_page < max_page && !self.show_all;
 
         html! {
             <ul class="page">
@@ -187,6 +201,9 @@ impl ResultTable {
                     <span class="material-icons">{"chevron_left"}</span>
                 </li>
                 { for (0..=max_page).map(|page| self.view_page_button(page)) }
+                <li class="page__btn" onclick=self.link.callback(|_| Msg::ShowAll)>
+                    { "All" }
+                </li>
                 <li class={ if is_next_active { "page__btn active" } else { "page__btn" } }
                     onclick=self.link.callback(|_| Msg::NextPage)>
                     <span class="material-icons">{"chevron_right"}</span>
