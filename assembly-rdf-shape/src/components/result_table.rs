@@ -1,6 +1,7 @@
 use crate::app::api::ShapeMapEntry;
 use crate::components::search_bar::SearchBar;
 use yew::prelude::*;
+
 #[derive(Properties, Clone)]
 pub struct Props {
     pub entries: Vec<ShapeMapEntry>,
