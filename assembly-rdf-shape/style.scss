@@ -923,3 +923,9 @@ input:checked + .slider:before {
   transform: scale(1.1); /* Aumenta el tamaño del botón */
   box-shadow: rgba(100, 100, 111, 0.4) 0px 10px 40px 0px; /* Incrementa la sombra */
 }
+
+.table-controls {
+  display: flex;
+  width: 100%;
+  justify-content: flex-end;
+}

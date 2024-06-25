@@ -1,6 +1,25 @@
 use crate::app::api::ShapeMapEntry;
 use crate::components::search_bar::SearchBar;
+use wasm_bindgen::prelude::*;
 use yew::prelude::*;
+
+#[wasm_bindgen(inline_js = r#"
+    export function exportCsv(csvContent, fileName) {
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', fileName);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+"#)]
+extern "C" {
+    pub fn exportCsv(csvContent: &str, fileName: &str);
+}
 
 #[derive(Properties, Clone)]
 pub struct Props {
@@ -22,6 +41,7 @@ pub enum Msg {
     PreviousPage,
     GoToPage(usize),
     UpdateSearchText(String),
+    ExportToCsv,
 }
 
 impl Component for ResultTable {
@@ -33,31 +53,23 @@ impl Component for ResultTable {
             link,
             props,
             current_page: 0,
-            entries_per_page: 10, // Número de entradas por página
+            entries_per_page: 10,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::OpenModal(node, shape) => {
-                let reason = self
-                    .props
-                    .entries
-                    .iter()
-                    .find(|entry| entry.node == node && entry.shape == shape)
-                    .map(|entry| entry.reason.clone())
-                    .unwrap_or_default();
-                self.props.on_open_modal.emit((node, shape));
+            Msg::OpenModal(node, reason) => {
+                self.props.on_open_modal.emit((node, reason));
                 true
             }
             Msg::UpdateSearchText(text) => {
                 self.props.search_text = text;
-                self.current_page = 0; // Restablecer a la primera página con nueva búsqueda
+                self.current_page = 0;
                 true
             }
             Msg::NextPage => {
-                let max_page = self.max_page();
-                if self.current_page < max_page {
+                if self.current_page < self.max_page() {
                     self.current_page += 1;
                 }
                 true
@@ -69,10 +81,13 @@ impl Component for ResultTable {
                 true
             }
             Msg::GoToPage(page) => {
-                let max_page = self.max_page();
-                if page <= max_page {
+                if page <= self.max_page() {
                     self.current_page = page;
                 }
+                true
+            }
+            Msg::ExportToCsv => {
+                self.export_to_csv();
                 true
             }
         }
@@ -104,6 +119,10 @@ impl Component for ResultTable {
 
         html! {
             <div class="result" id="result">
+                <div class="table-controls">
+                    <SearchBar on_search=self.link.callback(Msg::UpdateSearchText) />
+                    <button onclick=self.link.callback(|_| Msg::ExportToCsv)>{ "Export to CSV" }</button>
+                </div>
                 <table>
                     <tr>
                         <th>{"Node"}</th>
@@ -114,13 +133,32 @@ impl Component for ResultTable {
                     { for entries_to_display.iter().map(|entry| self.view_entry(entry)) }
                 </table>
                 { self.view_pagination(filtered_entries.len()) }
-                <SearchBar on_search=self.link.callback(Msg::UpdateSearchText) />
             </div>
         }
     }
 }
 
 impl ResultTable {
+    fn export_to_csv(&self) {
+        let csv_data = self.format_csv_data();
+        exportCsv(&csv_data, "export.csv");
+    }
+
+    fn format_csv_data(&self) -> String {
+        let header = "Node;Shape;Status;Reason\n".to_string();
+        let csv_data = self.props.entries.iter().fold(header, |acc, entry| {
+            format!(
+                "{}{};{};{};{}\n",
+                acc,
+                entry.node,
+                entry.shape,
+                entry.status,
+                entry.reason.replace('\n', "")
+            )
+        });
+        csv_data
+    }
+
     fn view_entry(&self, entry: &ShapeMapEntry) -> Html {
         let cloned_entry = entry.clone();
         html! {
@@ -161,12 +199,6 @@ impl ResultTable {
     }
 
     fn max_page(&self) -> usize {
-        let total_filtered_entries = self
-            .props
-            .entries
-            .iter()
-            .filter(|entry| entry.node.contains(&self.props.search_text))
-            .count();
-        (total_filtered_entries + self.entries_per_page - 1) / self.entries_per_page - 1
+        (self.props.entries.len() + self.entries_per_page - 1) / self.entries_per_page
     }
 }

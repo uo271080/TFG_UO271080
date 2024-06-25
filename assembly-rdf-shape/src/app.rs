@@ -24,24 +24,6 @@ pub struct App {
     shapemap_parameters: Vec<String>,
 }
 
-#[wasm_bindgen(inline_js = r#"
-    export function exportCsv(csvContent, fileName) {
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', fileName);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-    }
-    "#)]
-extern "C" {
-    pub fn exportCsv(csvContent: &str, fileName: &str);
-}
-
 #[wasm_bindgen(inline_js = "
     import YATE from 'perfectkb-yate';
     export function setYate(input) {
@@ -128,7 +110,6 @@ pub enum Msg {
     CloseAlert,
     OpenModal(String, String),
     CloseModal,
-    ExportToCsv,
 }
 
 impl Component for App {
@@ -207,10 +188,6 @@ impl Component for App {
             Msg::CloseModal => {
                 self.state.show_modal = false;
             }
-            Msg::ExportToCsv => {
-                let csv_data = App::format_csv_data(&self);
-                exportCsv(&csv_data, "export.csv");
-            }
             Msg::UpdateShapeMapValue(new_value) => {
                 self.state.shapemap_value = new_value;
             }
@@ -275,9 +252,6 @@ impl Component for App {
                         </div>
                         <div class="result-container">
                             {self.render_result()}
-                            <div class="result-options">
-                            <button onclick=self.link.callback(|_| Msg::ExportToCsv)>{ "Export to CSV" }</button>
-                            </div>
                         </div>
                     </div>
                 </section>
@@ -287,31 +261,6 @@ impl Component for App {
 }
 
 impl App {
-    fn format_csv_data(&self) -> String {
-        if let Some(result) = &self.state.validation_result {
-            let header = "Node;Shape;Status;Reason\n".to_string();
-            let entries: Vec<_> = result
-                .result
-                .shape_map
-                .iter()
-                .map(|entry| {
-                    format!(
-                        "{};{};{};{}\n",
-                        entry.node,
-                        entry.shape,
-                        entry.status,
-                        entry.reason.replace('\n', "")
-                    )
-                })
-                .collect();
-
-            let csv_data = entries.into_iter().fold(header, |acc, line| acc + &line);
-            csv_data
-        } else {
-            "".to_string()
-        }
-    }
-
     fn render_result(&self) -> Html {
         html! {
             <>
