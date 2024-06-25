@@ -53,7 +53,7 @@ impl Component for ResultTable {
             link,
             props,
             current_page: 0,
-            entries_per_page: 10,
+            entries_per_page: 5, // Set to 5 entries per page
         }
     }
 
@@ -207,6 +207,10 @@ impl ResultTable {
     }
 
     fn max_page(&self) -> usize {
-        (self.props.entries.len() + self.entries_per_page - 1) / self.entries_per_page
+        if self.props.entries.is_empty() {
+            0
+        } else {
+            (self.props.entries.len() - 1) / self.entries_per_page
+        }
     }
 }
