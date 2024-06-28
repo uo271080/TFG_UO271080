@@ -1,8 +1,8 @@
 use crate::app::api::{self, InfoRdfResponse, InfoShexResponse};
-use log::info;
 use wasm_bindgen::prelude::*;
 use yew::prelude::*;
 
+/// Obtiene el valor actual del editor YATE.
 #[wasm_bindgen(inline_js = "
 export function getYate() {
     return window.yateInstance.getValue();
@@ -12,6 +12,7 @@ extern "C" {
     fn getYate() -> String;
 }
 
+/// Obtiene el valor actual del editor YASHE.
 #[wasm_bindgen(inline_js = "
 export function getYashe() {
     return window.yasheInstance.getValue();
@@ -21,6 +22,7 @@ extern "C" {
     fn getYashe() -> String;
 }
 
+/// Inicializa el editor YATE en la página.
 #[wasm_bindgen(inline_js = "
 import YATE from 'perfectkb-yate';
 export function initializeYate() {
@@ -32,6 +34,7 @@ extern "C" {
     fn initializeYate();
 }
 
+/// Inicializa el editor YASHE en la página.
 #[wasm_bindgen(inline_js = "
 import YASHE from 'yashe';
 export function initializeYashe() {
@@ -43,6 +46,7 @@ extern "C" {
     fn initializeYashe();
 }
 
+/// Propiedades para configurar el componente `Editor`.
 #[derive(Properties, Clone, PartialEq)]
 pub struct Props {
     pub shapemap_value: String,
@@ -54,19 +58,26 @@ pub struct Props {
     pub shapemap_parameters: Vec<String>,
 }
 
+/// Componente `Editor` que maneja editores de texto para RDF,ShEx y ShapeMap.
 pub struct Editor {
     link: ComponentLink<Self>,
     props: Props,
     analyzer_error: bool,
 }
 
+/// Mensajes internos del componente para manejar la lógica de la interfaz.
 pub enum Msg {
+    /// Actualiza valor del editor ShapeMap
     UpdateShapeMapValue(String),
+    /// Lanza proceso de validación dado el valor de cada entrada
     Validate,
+    /// Lanza proceso de análisis dada la entrada RDF
     AnalyzeRDF,
+    /// Lanza proceso de análisis dada la entrada ShEx
     AnalyzeShex,
+    /// Recibe respuesta del proceso de análisis ShEx
     ReceiveShexAnalysis((InfoShexResponse, String)),
-    OpenModal(String, String),
+    /// Recibe respuesta del proceso de análisis RDF
     ReceiveRDFAnalysis((InfoRdfResponse, String)),
 }
 
@@ -74,6 +85,7 @@ impl Component for Editor {
     type Message = Msg;
     type Properties = Props;
 
+    /// Crea una nueva instancia del componente `Editor`.
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         Self {
             link,
@@ -82,6 +94,7 @@ impl Component for Editor {
         }
     }
 
+    /// Actualiza el estado del componente basado en mensajes recibidos.
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::UpdateShapeMapValue(value) => {
@@ -148,20 +161,16 @@ impl Component for Editor {
                 }
                 true
             }
-            Msg::OpenModal(title, content) => {
-                self.props
-                    .on_open_modal
-                    .emit(("titulo mdal".to_string(), "subtitulo".to_string()));
-                true
-            }
         }
     }
 
+    /// Gestiona cambios en las propiedades del componente.
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
         self.props = props;
         true
     }
 
+    /// Se llama después de que el componente es renderizado.
     fn rendered(&mut self, first_render: bool) {
         if first_render {
             initializeYate();
@@ -169,6 +178,7 @@ impl Component for Editor {
         }
     }
 
+    /// Renderiza el HTML del componente.
     fn view(&self) -> Html {
         html! {
             <div class="editors-container">
@@ -208,6 +218,7 @@ impl Component for Editor {
 }
 
 impl Editor {
+    /// Renderiza las opciones de parámetros para cada editor.
     fn view_parameters(&self, options: &Vec<String>, filter: &str) -> Html {
         let select_class = format!("select parameters param-{}", filter);
         let id = format!("select-{}", filter);

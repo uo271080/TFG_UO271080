@@ -1,14 +1,10 @@
+/// Proporciona funciones y estructuras necesarias para realizar solicitudes HTTP, manejar las respuestas y
+/// procesar los datos recibidos.
 pub(crate) mod api;
+/// Gestiona los ejemplos de datos utilizados dentro de la aplicación.
 mod examples_manager;
-pub(crate) mod rdf_manager;
-use oxrdf::{vocab::rdf, NamedNodeRef};
-use oxttl::TurtleParser;
-use std::{thread::sleep, time::Duration};
 
-use crate::components::{
-    editors::Editor, header::Header, modal::Modal, result_table::ResultTable, search_bar::SearchBar,
-};
-use api::ShapeMapEntry;
+use crate::components::{editors::Editor, header::Header, modal::Modal, result_table::ResultTable};
 use examples_manager::{load_example, ExampleData};
 use log::*;
 use serde::{Deserialize, Serialize};
@@ -16,6 +12,7 @@ use strum_macros::{EnumIter, ToString};
 use wasm_bindgen::prelude::*;
 use yew::prelude::*;
 
+/// Definición del componente principal App
 pub struct App {
     link: ComponentLink<Self>,
     state: State,
@@ -24,6 +21,7 @@ pub struct App {
     shapemap_parameters: Vec<String>,
 }
 
+/// Asignación editor Yate a elemento del DOM
 #[wasm_bindgen(inline_js = "
     import YATE from 'perfectkb-yate';
     export function setYate(input) {
@@ -34,6 +32,7 @@ extern "C" {
     fn setYate(input: &str);
 }
 
+/// Asignación editor Yashe a elemento del DOM
 #[wasm_bindgen(inline_js = "
     export function setYashe(input) {
         return window.yasheInstance.setValue(input);
@@ -43,6 +42,7 @@ extern "C" {
     fn setYashe(input: &str);
 }
 
+/// Recuperación valor editor Yate
 #[wasm_bindgen(inline_js = "
     export function getYate() {
         return window.yateInstance.getValue();
@@ -52,6 +52,7 @@ extern "C" {
     fn getYate() -> String;
 }
 
+/// Recuperación valor editor Yashe
 #[wasm_bindgen(inline_js = "
     export function getYashe() {
         return window.yasheInstance.getValue();
@@ -61,6 +62,7 @@ extern "C" {
     fn getYashe() -> String;
 }
 
+/// ScroLL automático a elemento del DOM
 #[wasm_bindgen(inline_js = "
     export function scrollToElement(id) {
         const element = document.getElementById(id);
@@ -79,12 +81,14 @@ extern "C" {
     fn scrollToElement(id: &str);
 }
 
+/// Estructura para la información del modal
 #[derive(Serialize, Deserialize, Default)]
 pub struct ModalInfo {
     title: String,
     content: String,
 }
 
+/// Estructura para mantener el estado de la aplicación
 #[derive(Serialize, Deserialize)]
 pub struct State {
     filter: Filter,
@@ -100,18 +104,32 @@ pub struct State {
     is_loading: bool,
 }
 
+/// Enum para los mensajes que se pueden enviar al componente
 pub enum Msg {
+    /// Solicita la validación de los datos actualmente cargados en los editores.
     Validate,
+    /// Resultado de una solicitud de validación.
+    /// Contiene `api::ValidationResult` con el resultado de la validación y un `String` que puede contener un mensaje de error.
     ValidationResult(api::ValidationResult, String),
-    UpdateSearch(String),
+    /// Actualiza el valor actual del ShapeMap con el nuevo valor proporcionado.
+    /// `String` contiene el nuevo valor de ShapeMap.
     UpdateShapeMapValue(String),
+    /// Carga un ejemplo específico.
+    /// `String` contiene el identificador del ejemplo a cargar.
     LoadExample(String),
+    /// Notifica que un ejemplo ha sido cargado.
+    /// `Result<ExampleData, String>` contiene los datos del ejemplo o un mensaje de error en caso de fallo.
     ExampleLoaded(Result<ExampleData, String>),
+    /// Cierra la alerta actualmente mostrada, por ejemplo, un mensaje de error.
     CloseAlert,
+    /// Abre un modal con información detallada.
+    /// `String, String` contiene el título y el contenido del modal, respectivamente.
     OpenModal(String, String),
+    /// Cierra el modal actualmente abierto.
     CloseModal,
 }
 
+/// Implementación del componente App
 impl Component for App {
     type Message = Msg;
     type Properties = ();
@@ -150,10 +168,12 @@ impl Component for App {
         }
     }
 
+    /// Método para detectar cambios en las propiedades
     fn change(&mut self, _props: Self::Properties) -> ShouldRender {
         false
     }
 
+    /// Método para manejar los mensajes enviados al componente
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::Validate => {
@@ -201,9 +221,6 @@ impl Component for App {
                     scrollToElement("result-table");
                 }
             }
-            Msg::UpdateSearch(text) => {
-                self.state.search_text = text.to_lowercase();
-            }
             Msg::LoadExample(file) => {
                 let link = self.link.clone();
                 wasm_bindgen_futures::spawn_local(async move {
@@ -225,6 +242,7 @@ impl Component for App {
         true
     }
 
+    /// Método que se llama después de que el componente se haya renderizado
     fn rendered(&mut self, first_render: bool) {
         if self.state.scroll_needed && !first_render {
             scrollToElement("result-table");
@@ -232,6 +250,7 @@ impl Component for App {
         }
     }
 
+    /// Método para renderizar la vista del componente
     fn view(&self) -> Html {
         info!("rendered!");
         html! {
@@ -261,6 +280,7 @@ impl Component for App {
 }
 
 impl App {
+    /// Método para renderizar el resultado de la validación
     fn render_result(&self) -> Html {
         html! {
             <>
@@ -314,6 +334,7 @@ impl App {
     }
 }
 
+/// Enum que contiene los distintos tipos de entrada
 #[derive(EnumIter, ToString, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Filter {
     RDF,

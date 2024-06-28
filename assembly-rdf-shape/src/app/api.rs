@@ -4,38 +4,42 @@ use web_sys::console;
 
 use serde::{Deserialize, Serialize};
 
-// VALIDATION SCHEMAS
+/// Objeto Data de la respuesta al andpoint validation
 #[derive(Serialize, Deserialize)]
 pub struct Data {
     pub content: String,
-    pub source: String,    // Siempre es = "byText"
-    pub format: String,    // Siempre es "Turtle"
-    pub inference: String, //Siempre es = "NONE"
+    pub source: String,
+    pub format: String,
+    pub inference: String,
 }
 
+/// Define esquema ShEx
 #[derive(Serialize, Deserialize)]
 pub struct Schema {
     pub content: String,
-    pub source: String, // Siempre es = "byText"
-    pub format: String, // Siempre es = "ShEc"
-    pub engine: String, //siempre es = "ShEx"
+    pub source: String,
+    pub format: String,
+    pub engine: String,
 }
 
+/// Define esquema ShapeMap
 #[derive(Serialize, Deserialize)]
 pub struct ShapeMap {
     pub content: String,
-    pub source: String, // Siempre es = "byText"
-    pub format: String, // Siempre es = "Compact"
+    pub source: String,
+    pub format: String,
 }
 
+/// Define objeto TriggerMode
 #[derive(Serialize, Deserialize)]
 pub struct TriggerMode {
     #[serde(rename = "type")]
-    pub trigger_type: String, // Siempre es "ShapeMap"
+    pub trigger_type: String,
     #[serde(rename = "shape-map")]
     pub shape_map: ShapeMap,
 }
 
+/// Define el esquema para el body de Validation
 #[derive(Serialize, Deserialize)]
 pub struct RequestBody {
     pub data: Data,
@@ -44,13 +48,14 @@ pub struct RequestBody {
     pub trigger_mode: TriggerMode,
 }
 
+/// Define el esquema para la respuesta del método Validation
 #[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ValidationResult {
     pub result: ApiResult,
 }
 
-/// Respuesta del API
+/// Define el esquema para el objeto Result de la respuesta del método Validation
 #[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ApiResult {
@@ -59,7 +64,7 @@ pub struct ApiResult {
     pub shape_map: Vec<ShapeMapEntry>,
 }
 
-/// Entrada Shape Map
+/// Define el esquema para cada ShapeMap de la respuesta del método Validation
 #[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ShapeMapEntry {
@@ -69,13 +74,14 @@ pub struct ShapeMapEntry {
     pub reason: String,
 }
 
-/// INFO RDF SCHEMAS
+/// Define el esquema para el body del método data/info
 #[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct InfoRdfRequest {
     pub data: InfoRdfRequestContent,
 }
 
+/// Define el esquema para el objeto data del body del método data/info
 #[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct InfoRdfRequestContent {
@@ -85,25 +91,29 @@ pub struct InfoRdfRequestContent {
     pub source: String,
 }
 
+/// Define el esquema para la respuesta del método data/info
 #[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct InfoRdfResponse {
     pub message: String,
     pub result: InfoRdfResult,
 }
+
+/// Define el esquema objeto result para la respuesta del método data/info
 #[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct InfoRdfResult {
     pub number_of_statements: i32,
 }
 
-/// INFO SHEX SCHEMAS
+/// Define el esquema para el body del método schema/info
 #[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct InfoShexRequest {
     pub schema: InfoShexRequestContent,
 }
 
+/// Define el esquema para el objeto schema el body del método schema/info
 #[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct InfoShexRequestContent {
@@ -113,12 +123,15 @@ pub struct InfoShexRequestContent {
     pub source: String,
 }
 
+/// Define el esquema la respuesta del método schema/info
 #[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct InfoShexResponse {
     pub message: String,
     pub result: InfoShexResult,
 }
+
+/// Define el esquema el objeto result la respuesta del método schema/info
 #[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct InfoShexResult {
@@ -126,6 +139,7 @@ pub struct InfoShexResult {
     pub prefix_map: Vec<Prefix>,
 }
 
+/// Define el esquema el objeto Prefix la respuesta del método schema/info
 #[derive(Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Prefix {
@@ -133,6 +147,15 @@ pub struct Prefix {
     prefix_IRI: String,
 }
 
+/// Construye el cuerpo de la solicitud para validar RDF, ShEx y ShapeMap.
+///
+/// # Parámetros
+/// * `rdf_content` - Contenido RDF
+/// * `shex_content` - Esquema ShEx
+/// * `shapemap_content` - Contenido del ShapeMap
+///
+/// # Retorna
+/// Devuelve un `RequestBody` estructurado con los datos proporcionados.
 pub fn create_validation_request_body(
     rdf_content: String,
     shex_content: String,
@@ -172,6 +195,16 @@ pub fn create_validation_request_body(
     return request_body;
 }
 
+/// Realiza una llamada a la API para validar RDF, ShEx y ShapeMap y maneja los resultados.
+///
+/// # Parámetros
+/// * `rdf_content` - Contenido RDF
+/// * `shex_content` - Esquema ShEx
+/// * `shapemap_content` - Contenido del ShapeMap
+///
+/// # Retorna
+/// Retorna un tuple `(ValidationResult, String)` donde `ValidationResult` es el resultado de la validación
+/// y `String` es un mensaje de error, si ocurrió alguno durante la operación.
 pub async fn call_validation_api(
     rdf_content: String,
     shex_content: String,
@@ -214,6 +247,17 @@ pub async fn call_validation_api(
     (formatted_result, error_message)
 }
 
+/// Realiza una solicitud a la API para obtener información sobre RDF.
+///
+/// Esta función envía una solicitud POST a un endpoint específico, esperando recibir
+/// detalles sobre la validación RDF como el número de declaraciones.
+///
+/// # Parámetros
+/// * `rdf` - El contenido RDF a analizar.
+///
+/// # Retorna
+/// Retorna un tuple (`InfoRdfResponse`, `String`), donde `InfoRdfResponse` contiene la
+/// respuesta de la API y `String` contiene un mensaje de error en caso de que ocurra uno.
 pub async fn call_rdf_info_api(rdf: String) -> (InfoRdfResponse, String) {
     let mut error_message = "".to_string();
     let request_body = create_rdf_info_request_body(rdf);
@@ -250,6 +294,17 @@ pub async fn call_rdf_info_api(rdf: String) -> (InfoRdfResponse, String) {
     (info_response, error_message)
 }
 
+/// Realiza una solicitud a la API para obtener información sobre ShEx.
+///
+/// Envía una solicitud POST para obtener detalles de un esquema ShEx, como las formas y
+/// mapas de prefijos utilizados en el esquema.
+///
+/// # Parámetros
+/// * `shex` - El contenido ShEx a analizar.
+///
+/// # Retorna
+/// Retorna un tuple (`InfoShexResponse`, `String`), donde `InfoShexResponse` contiene la
+/// respuesta de la API y `String` contiene un mensaje de error en caso de que ocurra uno.
 pub async fn call_shex_info_api(shex: String) -> (InfoShexResponse, String) {
     let mut error_message = "".to_string();
     let request_body = create_shex_info_request_body(shex);
@@ -286,6 +341,13 @@ pub async fn call_shex_info_api(shex: String) -> (InfoShexResponse, String) {
     (info_response, error_message)
 }
 
+/// Construye el cuerpo de la solicitud para obtener información RDF.
+///
+/// # Parámetros
+/// * `rdf` - El contenido RDF
+///
+/// # Retorna
+/// Retorna una estructura `InfoRdfRequest` preparada para ser enviada a la API.
 pub fn create_rdf_info_request_body(rdf: String) -> InfoRdfRequest {
     let data_request = InfoRdfRequestContent {
         content: rdf,
@@ -299,6 +361,13 @@ pub fn create_rdf_info_request_body(rdf: String) -> InfoRdfRequest {
     request_body
 }
 
+/// Construye el cuerpo de la solicitud para obtener información ShEx.
+///
+/// # Parámetros
+/// * `shex` - El contenido ShEx
+///
+/// # Retorna
+/// Retorna una estructura `InfoShexRequest` preparada para ser enviada a la API.
 pub fn create_shex_info_request_body(shex: String) -> InfoShexRequest {
     let data_request = InfoShexRequestContent {
         content: shex,
@@ -313,7 +382,14 @@ pub fn create_shex_info_request_body(shex: String) -> InfoShexRequest {
 
     request_body
 }
-/// Conversión de las shape maps para mostrar al usuario
+
+/// Formatea las entradas de ShapeMap para mejorar la legibilidad en la visualización final.
+///
+/// # Parámetros
+/// * `response` - Resultado de la validación que contiene el mapa de formas.
+///
+/// # Retorna
+/// Devuelve un `ValidationResult` modificado con los nodos y formas formateados.
 pub fn format_shape_maps(response: ValidationResult) -> ValidationResult {
     let mut formatted_result = response.clone();
     let shapes = &mut formatted_result.result.shape_map;
@@ -325,7 +401,13 @@ pub fn format_shape_maps(response: ValidationResult) -> ValidationResult {
     formatted_result
 }
 
-/// Formatea el estado al formato deseado
+/// Formatea el estado de la validación para ser mostrado de manera clara.
+///
+/// # Parámetros
+/// * `status` - Estado de validación original.
+///
+/// # Retorna
+/// Devuelve una cadena que representa el estado formateado ("Valid" o "Invalid").
 fn format_status(status: &str) -> String {
     if status == "conformant" {
         return "Valid".to_string();
@@ -334,7 +416,13 @@ fn format_status(status: &str) -> String {
     }
 }
 
-/// Extrae el nodo y el shape
+/// Extrae la última parte de una URI, usada para simplificar las referencias en las visualizaciones.
+///
+/// # Parámetros
+/// * `uri` - La URI completa desde la cual extraer el segmento.
+///
+/// # Retorna
+/// Devuelve una cadena que representa el último segmento de la URI.
 fn extract_last_segment(uri: &str) -> String {
     if let Some(start) = uri.rfind('/') {
         if let Some(end) = uri.find('>') {

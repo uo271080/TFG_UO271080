@@ -1,16 +1,22 @@
 use yew::prelude::*;
 
+/// Componente `Header` que proporciona una interfaz de usuario para la navegación y la carga de ejemplos.
+///
+/// Este componente incluye un menú de navegación con opciones para cargar ejemplos predefinidos.
+/// Cada opción emite un callback con el identificador del ejemplo seleccionado, que puede ser utilizado
+/// por otros componentes para realizar acciones específicas, como cargar datos o configurar el entorno.
 pub struct Header {
     link: ComponentLink<Self>,
     props: Props,
 }
-
 #[derive(Properties, Clone, PartialEq)]
 pub struct Props {
     pub on_load_example: Callback<String>,
 }
 
 pub enum Msg {
+    /// Mensaje que indica la carga de un ejemplo específico.
+    /// Contiene el identificador del ejemplo a cargar.
     LoadExample(String),
 }
 
