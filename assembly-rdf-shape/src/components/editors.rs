@@ -99,7 +99,7 @@ impl Component for Editor {
         match msg {
             Msg::UpdateShapeMapValue(value) => {
                 self.props.on_update_shapemap_value.emit(value);
-                true
+                false
             }
             Msg::Validate => {
                 self.props.on_validate.emit(());

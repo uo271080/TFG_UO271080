@@ -210,6 +210,7 @@ impl Component for App {
             }
             Msg::UpdateShapeMapValue(new_value) => {
                 self.state.shapemap_value = new_value;
+                false;
             }
             Msg::ValidationResult(result, error) => {
                 self.state.is_loading = false;
