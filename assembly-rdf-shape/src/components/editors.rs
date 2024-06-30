@@ -181,7 +181,7 @@ impl Component for Editor {
     /// Renderiza el HTML del componente.
     fn view(&self) -> Html {
         html! {
-            <div class="editors-container">
+            <div id="editors-container" class="editors-container">
                 <div class="yashe-container">
                     <h3 class="title-editor">{"RDF"}</h3>
                     <textarea id="editor-yate"></textarea>
