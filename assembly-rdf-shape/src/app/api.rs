@@ -160,25 +160,28 @@ pub fn create_validation_request_body(
     rdf_content: String,
     shex_content: String,
     shapemap_content: String,
+    rdf_format: String,
+    shex_format: String,
+    shapemap_format: String,
 ) -> RequestBody {
     let data = Data {
         content: rdf_content,
         source: "byText".to_string(),
-        format: "turtle".to_string(),
+        format: rdf_format,
         inference: "NONE".to_string(),
     };
 
     let schema = Schema {
         content: shex_content,
         source: "byText".to_string(),
-        format: "ShExC".to_string(),
+        format: shex_format,
         engine: "ShEx".to_string(),
     };
 
     let shape_map = ShapeMap {
         content: shapemap_content,
         source: "byText".to_string(),
-        format: "Compact".to_string(),
+        format: shapemap_format,
     };
 
     let trigger_mode = TriggerMode {
@@ -209,9 +212,19 @@ pub async fn call_validation_api(
     rdf_content: String,
     shex_content: String,
     shapemap_content: String,
+    rdf_format: String,
+    shex_format: String,
+    shapemap_format: String,
 ) -> (ValidationResult, String) {
     let mut error_message = "".to_string();
-    let request_body = create_validation_request_body(rdf_content, shex_content, shapemap_content);
+    let request_body = create_validation_request_body(
+        rdf_content,
+        shex_content,
+        shapemap_content,
+        rdf_format,
+        shex_format,
+        shapemap_format,
+    );
 
     let validation_endpoint = "https://api.rdfshape.weso.es/api/schema/validate";
     let request_body_json = serde_json::to_string(&request_body).unwrap();

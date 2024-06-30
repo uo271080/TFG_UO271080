@@ -107,7 +107,7 @@ pub struct State {
 /// Enum para los mensajes que se pueden enviar al componente
 pub enum Msg {
     /// Solicita la validación de los datos actualmente cargados en los editores.
-    Validate,
+    Validate(String, String, String),
     /// Resultado de una solicitud de validación.
     /// Contiene `api::ValidationResult` con el resultado de la validación y un `String` que puede contener un mensaje de error.
     ValidationResult(api::ValidationResult, String),
@@ -176,7 +176,7 @@ impl Component for App {
     /// Método para manejar los mensajes enviados al componente
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::Validate => {
+            Msg::Validate(rdf_param, shex_param, shapemap_param) => {
                 self.state.api_error = "".to_string();
                 self.state.validation_result = Default::default();
                 self.state.show_result = true;
@@ -187,8 +187,15 @@ impl Component for App {
                 let shapemap_content = self.state.shapemap_value.clone();
                 let link = self.link.clone();
                 wasm_bindgen_futures::spawn_local(async move {
-                    let result =
-                        api::call_validation_api(rdf_content, shex_content, shapemap_content).await;
+                    let result = api::call_validation_api(
+                        rdf_content,
+                        shex_content,
+                        shapemap_content,
+                        rdf_param,
+                        shex_param,
+                        shapemap_param,
+                    )
+                    .await;
                     link.send_message(Msg::ValidationResult(result.0, result.1));
                 });
             }
@@ -262,7 +269,7 @@ impl Component for App {
                         <Editor
                             shapemap_value=self.state.shapemap_value.clone()
                             on_update_shapemap_value=self.link.callback(Msg::UpdateShapeMapValue)
-                            on_validate=self.link.callback(|_| Msg::Validate)
+                            on_validate=self.link.callback(|(rdf_param, shex_param,shapemap_param)| Msg::Validate(rdf_param,shex_param,shapemap_param))
                             on_open_modal=self.link.callback(|(title, content)| Msg::OpenModal(title, content))
                             rdf_parameters=self.rdf_parameters.clone()
                             shex_parameters=self.shex_parameters.clone()

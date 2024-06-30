@@ -51,7 +51,7 @@ extern "C" {
 pub struct Props {
     pub shapemap_value: String,
     pub on_update_shapemap_value: Callback<String>,
-    pub on_validate: Callback<()>,
+    pub on_validate: Callback<(String, String, String)>,
     pub on_open_modal: Callback<(String, String)>,
     pub rdf_parameters: Vec<String>,
     pub shex_parameters: Vec<String>,
@@ -114,12 +114,20 @@ impl Component for Editor {
                 false
             }
             Msg::Validate => {
-                self.props.on_validate.emit(());
+                let rdf_param_selected = self.rdf_param_selected.clone();
+                let shex_param_selected = self.shex_param_selected.clone();
+                let shapemap_param_selected = self.shapemap_param_selected.clone();
+
+                self.props.on_validate.emit((
+                    rdf_param_selected,
+                    shex_param_selected,
+                    shapemap_param_selected,
+                ));
                 true
             }
             Msg::AnalyzeRDF => {
-                let link = self.link.clone(); // Clonar el enlace del componente para usar en el contexto async
-                let rdf_param_selected = self.rdf_param_selected.clone(); // Clona el valor seleccionado
+                let link = self.link.clone();
+                let rdf_param_selected = self.rdf_param_selected.clone();
 
                 wasm_bindgen_futures::spawn_local(async move {
                     let content = api::call_rdf_info_api(getYate(), rdf_param_selected).await;
