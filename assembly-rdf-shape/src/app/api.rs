@@ -254,7 +254,7 @@ pub async fn call_validation_api(
 ///
 /// # Parámetros
 /// * `rdf` - El contenido RDF a analizar.
-///
+/// * `format` - El formato del RDF a analizar.
 /// # Retorna
 /// Retorna un tuple (`InfoRdfResponse`, `String`), donde `InfoRdfResponse` contiene la
 /// respuesta de la API y `String` contiene un mensaje de error en caso de que ocurra uno.
@@ -301,13 +301,14 @@ pub async fn call_rdf_info_api(rdf: String, format: String) -> (InfoRdfResponse,
 ///
 /// # Parámetros
 /// * `shex` - El contenido ShEx a analizar.
+/// * `format` - El formato del ShEx a analizar.
 ///
 /// # Retorna
 /// Retorna un tuple (`InfoShexResponse`, `String`), donde `InfoShexResponse` contiene la
 /// respuesta de la API y `String` contiene un mensaje de error en caso de que ocurra uno.
-pub async fn call_shex_info_api(shex: String) -> (InfoShexResponse, String) {
+pub async fn call_shex_info_api(shex: String, format: String) -> (InfoShexResponse, String) {
     let mut error_message = "".to_string();
-    let request_body = create_shex_info_request_body(shex);
+    let request_body = create_shex_info_request_body(shex, format);
 
     let info_endpoint = "https://api.rdfshape.weso.es/api/schema/info";
     let request_body_json = serde_json::to_string(&request_body).unwrap();
@@ -365,14 +366,15 @@ pub fn create_rdf_info_request_body(rdf: String, format: String) -> InfoRdfReque
 ///
 /// # Parámetros
 /// * `shex` - El contenido ShEx
+/// * `format_param` - El formato del ShEx
 ///
 /// # Retorna
 /// Retorna una estructura `InfoShexRequest` preparada para ser enviada a la API.
-pub fn create_shex_info_request_body(shex: String) -> InfoShexRequest {
+pub fn create_shex_info_request_body(shex: String, format_param: String) -> InfoShexRequest {
     let data_request = InfoShexRequestContent {
         content: shex,
         engine: "ShEx".to_string(),
-        format: "ShExC".to_string(),
+        format: format_param,
         source: "byText".to_string(),
     };
 

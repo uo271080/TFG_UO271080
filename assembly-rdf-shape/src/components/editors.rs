@@ -147,9 +147,11 @@ impl Component for Editor {
             }
             Msg::AnalyzeShex => {
                 let link = self.link.clone(); // Clonar el enlace del componente para usar en el contexto async
+                let shex_param_selected = self.shex_param_selected.clone(); // Clona el valor seleccionado
+
                 wasm_bindgen_futures::spawn_local(async move {
                     let content: (InfoShexResponse, String) =
-                        api::call_shex_info_api(getYashe()).await;
+                        api::call_shex_info_api(getYashe(), shex_param_selected).await;
                     link.send_message(Msg::ReceiveShexAnalysis(content));
                 });
                 true
