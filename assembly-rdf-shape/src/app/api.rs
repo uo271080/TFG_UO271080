@@ -258,9 +258,9 @@ pub async fn call_validation_api(
 /// # Retorna
 /// Retorna un tuple (`InfoRdfResponse`, `String`), donde `InfoRdfResponse` contiene la
 /// respuesta de la API y `String` contiene un mensaje de error en caso de que ocurra uno.
-pub async fn call_rdf_info_api(rdf: String) -> (InfoRdfResponse, String) {
+pub async fn call_rdf_info_api(rdf: String, format: String) -> (InfoRdfResponse, String) {
     let mut error_message = "".to_string();
-    let request_body = create_rdf_info_request_body(rdf);
+    let request_body = create_rdf_info_request_body(rdf, format);
 
     let info_endpoint = "https://api.rdfshape.weso.es/api/data/info";
     let request_body_json = serde_json::to_string(&request_body).unwrap();
@@ -348,10 +348,10 @@ pub async fn call_shex_info_api(shex: String) -> (InfoShexResponse, String) {
 ///
 /// # Retorna
 /// Retorna una estructura `InfoRdfRequest` preparada para ser enviada a la API.
-pub fn create_rdf_info_request_body(rdf: String) -> InfoRdfRequest {
+pub fn create_rdf_info_request_body(rdf: String, format: String) -> InfoRdfRequest {
     let data_request = InfoRdfRequestContent {
         content: rdf,
-        format: "Turtle".to_string(),
+        format: format,
         inference: "NONE".to_string(),
         source: "byText".to_string(),
     };
