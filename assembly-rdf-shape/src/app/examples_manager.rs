@@ -12,6 +12,9 @@ pub struct ExampleData {
     pub rdf: String,
     pub shex: String,
     pub shapemap: String,
+    pub rdf_format: String,
+    pub shex_format: String,
+    pub shapemap_format: String,
 }
 
 /// Carga un ejemplo desde un archivo JSON específico.

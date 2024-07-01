@@ -50,6 +50,9 @@ extern "C" {
 #[derive(Properties, Clone, PartialEq)]
 pub struct Props {
     pub shapemap_value: String,
+    pub rdf_format: String,
+    pub shex_format: String,
+    pub shapemap_format: String,
     pub on_update_shapemap_value: Callback<String>,
     pub on_validate: Callback<(String, String, String)>,
     pub on_open_modal: Callback<(String, String)>,
@@ -58,7 +61,7 @@ pub struct Props {
     pub shapemap_parameters: Vec<String>,
 }
 
-/// Componente `Editor` que maneja editores de texto para RDF,ShEx y ShapeMap.
+/// Componente `Editor` que maneja editores de texto para RDF, ShEx y ShapeMap.
 pub struct Editor {
     link: ComponentLink<Self>,
     props: Props,
@@ -96,13 +99,17 @@ impl Component for Editor {
 
     /// Crea una nueva instancia del componente `Editor`.
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+        let rdf_param_selected = props.rdf_format.clone();
+        let shex_param_selected = props.shex_format.clone();
+        let shapemap_param_selected = props.shapemap_format.clone();
+
         Self {
             link,
             props,
             analyzer_error: false,
-            rdf_param_selected: String::new(),  // Inicializa RDF
-            shex_param_selected: String::new(), // Inicializa ShEx
-            shapemap_param_selected: String::new(), // Inicializa ShapeMap
+            rdf_param_selected,
+            shex_param_selected,
+            shapemap_param_selected,
         }
     }
 
@@ -123,7 +130,7 @@ impl Component for Editor {
                     shex_param_selected,
                     shapemap_param_selected,
                 ));
-                true
+                false
             }
             Msg::AnalyzeRDF => {
                 let link = self.link.clone();
@@ -133,11 +140,11 @@ impl Component for Editor {
                     let content = api::call_rdf_info_api(getYate(), rdf_param_selected).await;
                     link.send_message(Msg::ReceiveRDFAnalysis(content));
                 });
-                true
+                false
             }
             Msg::ReceiveRDFAnalysis(result) => {
                 if !result.1.is_empty() {
-                    let content = format!("Status: RDF is not well-formed.",);
+                    let content = format!("Status: RDF is not well-formed.");
                     self.props
                         .on_open_modal
                         .emit(("RDF PROPERTIES".to_string(), content));
@@ -151,18 +158,18 @@ impl Component for Editor {
                         .on_open_modal
                         .emit(("RDF PROPERTIES".to_string(), content));
                 }
-                true
+                false
             }
             Msg::AnalyzeShex => {
-                let link = self.link.clone(); // Clonar el enlace del componente para usar en el contexto async
-                let shex_param_selected = self.shex_param_selected.clone(); // Clona el valor seleccionado
+                let link = self.link.clone();
+                let shex_param_selected = self.shex_param_selected.clone();
 
                 wasm_bindgen_futures::spawn_local(async move {
                     let content: (InfoShexResponse, String) =
                         api::call_shex_info_api(getYashe(), shex_param_selected).await;
                     link.send_message(Msg::ReceiveShexAnalysis(content));
                 });
-                true
+                false
             }
             Msg::ReceiveShexAnalysis(result) => {
                 if !result.1.is_empty() {
@@ -183,7 +190,7 @@ impl Component for Editor {
                         .on_open_modal
                         .emit(("SHEX PROPERTIES".to_string(), content));
                 }
-                true
+                false
             }
             Msg::UpdateRdfParamSelected(value) => {
                 self.rdf_param_selected = value;
@@ -202,8 +209,15 @@ impl Component for Editor {
 
     /// Gestiona cambios en las propiedades del componente.
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        self.props = props;
-        true
+        if self.props != props {
+            self.rdf_param_selected = props.rdf_format.clone();
+            self.shex_param_selected = props.shex_format.clone();
+            self.shapemap_param_selected = props.shapemap_format.clone();
+            self.props = props;
+            true
+        } else {
+            false
+        }
     }
 
     /// Se llama después de que el componente es renderizado.
@@ -239,8 +253,8 @@ impl Component for Editor {
                     <h3 class="title-editor">{"ShEx"}</h3>
                     <textarea id="editor-yashe"></textarea>
                     <div class="editor-tools">
-                    { self.view_parameters(&self.props.shex_parameters, "shex") }
-                    <button class="analyze-btn" onclick=self.link.callback(|_| Msg::AnalyzeShex)>{"Analyze"}</button>
+                        { self.view_parameters(&self.props.shex_parameters, "shex") }
+                        <button class="analyze-btn" onclick=self.link.callback(|_| Msg::AnalyzeShex)>{"Analyze"}</button>
                     </div>
                     <div style="margin-top: auto;">
                         <button class="button-27" onclick=self.link.callback(|_| Msg::Validate)>
@@ -257,7 +271,13 @@ impl Editor {
     fn view_parameters(&self, options: &Vec<String>, filter: &str) -> Html {
         let select_class = format!("select parameters param-{}", filter);
         let id = format!("select-{}", filter);
-        let filter = filter.to_string(); // Convertimos el filtro en un String para que no sea una referencia prestada
+        let filter = filter.to_string();
+        let selected_value = match filter.as_str() {
+            "rdf" => &self.rdf_param_selected,
+            "shex" => &self.shex_param_selected,
+            "shapemap" => &self.shapemap_param_selected,
+            _ => &String::new(),
+        };
 
         html! {
             <select
@@ -281,10 +301,18 @@ impl Editor {
                     }
                 })
             >
-                { for options.iter().map(|option| html! { <option class="option-parameters" value={option}>{option}</option> }) }
+                { for options.iter().map(|option| {
+                    html! {
+                        <option
+                            class="option-parameters"
+                            value={option}
+                            selected={selected_value == option}
+                        >
+                            {option}
+                        </option>
+                    }
+                }) }
             </select>
         }
     }
-
-    // ... el resto del código sigue igual
 }

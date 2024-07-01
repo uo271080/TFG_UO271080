@@ -4,6 +4,8 @@ pub(crate) mod api;
 /// Gestiona los ejemplos de datos utilizados dentro de la aplicación.
 mod examples_manager;
 
+use std::{thread::sleep, time::Duration};
+
 use crate::components::{editors::Editor, header::Header, modal::Modal, result_table::ResultTable};
 use examples_manager::{load_example, ExampleData};
 use log::*;
@@ -95,6 +97,9 @@ pub struct State {
     show_result: bool,
     scroll_needed: bool,
     shapemap_value: String,
+    rdf_format: String,
+    shex_format: String,
+    shapemap_format: String,
     edit_value: String,
     search_text: String,
     validation_result: Option<api::ValidationResult>,
@@ -142,6 +147,9 @@ impl Component for App {
             scroll_needed: false,
             edit_value: "".into(),
             shapemap_value: "".into(),
+            rdf_format: "Turtle".to_string(),
+            shex_format: "ShExC".to_string(),
+            shapemap_format: "Compact".to_string(),
             search_text: "".into(),
             validation_result: None,
             api_error: "".into(),
@@ -241,6 +249,9 @@ impl Component for App {
                     setYate(&data.rdf);
                     setYashe(&data.shex);
                     self.state.shapemap_value = data.shapemap;
+                    self.state.rdf_format = data.rdf_format;
+                    self.state.shex_format = data.shex_format;
+                    self.state.shapemap_format = data.shapemap_format;
                 }
                 Err(error) => {
                     self.state.api_error = error;
@@ -268,8 +279,11 @@ impl Component for App {
                     <div class="content">
                         <Editor
                             shapemap_value=self.state.shapemap_value.clone()
+                            rdf_format=self.state.rdf_format.clone()
+                            shex_format=self.state.shex_format.clone()
+                            shapemap_format=self.state.shapemap_format.clone()
                             on_update_shapemap_value=self.link.callback(Msg::UpdateShapeMapValue)
-                            on_validate=self.link.callback(|(rdf_param, shex_param,shapemap_param)| Msg::Validate(rdf_param,shex_param,shapemap_param))
+                            on_validate=self.link.callback(|(rdf_param, shex_param, shapemap_param)| Msg::Validate(rdf_param, shex_param, shapemap_param))
                             on_open_modal=self.link.callback(|(title, content)| Msg::OpenModal(title, content))
                             rdf_parameters=self.rdf_parameters.clone()
                             shex_parameters=self.shex_parameters.clone()
@@ -327,7 +341,7 @@ impl App {
                             } else if !self.state.api_error.is_empty() {
                                 html! {
                                     <div class="alert-error">
-                                        {"Error en la validación. Revise las entradas."}
+                                        {"Se ha detectado un error en los datos proporcionados. Por favor, revise las entradas."}
                                         <button class={"close-btn "} onclick=self.link.callback(|_| Msg::CloseAlert)>{ "X" }</button>
                                     </div>
                                 }
