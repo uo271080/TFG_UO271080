@@ -1,6 +1,7 @@
-#![recursion_limit = "512"]
-
+#![recursion_limit = "1024"]
 mod app;
+mod components;
+mod test;
 use wasm_bindgen::prelude::*;
 
 // This is the entry point for the web app
@@ -15,4 +16,3 @@ pub fn run_app() -> Result<(), JsValue> {
 fn pass() {
     assert_eq!(1 + 1, 2);
 }
-
