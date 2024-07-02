@@ -237,7 +237,7 @@ impl Component for Editor {
                     <textarea id="editor-yate"></textarea>
                     <div class="editor-tools">
                         { self.view_parameters(&self.props.rdf_parameters, "rdf") }
-                        <button class="analyze-btn" onclick=self.link.callback(|_| Msg::AnalyzeRDF)>{"Analyze"}</button>
+                        <button id="analyze-rdf" class="analyze-btn" onclick=self.link.callback(|_| Msg::AnalyzeRDF)>{"Analyze"}</button>
                     </div>
                     <div class="shapemap-container">
                         <h3 class="title-editor">{"ShapeMap"}</h3>
@@ -255,7 +255,7 @@ impl Component for Editor {
                     <textarea id="editor-yashe"></textarea>
                     <div class="editor-tools">
                         { self.view_parameters(&self.props.shex_parameters, "shex") }
-                        <button class="analyze-btn" onclick=self.link.callback(|_| Msg::AnalyzeShex)>{"Analyze"}</button>
+                        <button id="analyze-shex" class="analyze-btn" onclick=self.link.callback(|_| Msg::AnalyzeShex)>{"Analyze"}</button>
                     </div>
                     <div style="margin-top: auto;">
                         <button class="button-27" onclick=self.link.callback(|_| Msg::Validate)>

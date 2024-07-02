@@ -207,10 +207,8 @@ mod tests_i_3 {
             false,
         )?;
 
-        // Esperar a que los editores carguen los datos del ejemplo 3
         std::thread::sleep(Duration::from_secs(5)); // Ajusta la duración si es necesario
 
-        // Obtener el valor del editor RDF
         let rdf_content = tab.evaluate(
             r#"
             window.yateInstance.getValue();
@@ -228,7 +226,6 @@ mod tests_i_3 {
 
         assert_eq!(rdf_content_trimmed, rdf_example_trimmed);
 
-        // Obtener el valor del editor ShEx
         let shex_content = tab.evaluate(
             r#"
             window.yasheInstance.getValue();
@@ -246,7 +243,6 @@ mod tests_i_3 {
 
         assert_eq!(shex_content_trimmed, shex_example_trimmed);
 
-        // Obtener el valor del editor ShapeMap
         let shapemap_content = tab.evaluate(
             r#"
             document.querySelector('#shapemap-editor').value;

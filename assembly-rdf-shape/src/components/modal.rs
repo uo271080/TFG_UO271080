@@ -64,7 +64,7 @@ impl Component for Modal {
         html! {
             <div class="reason-modal">
                 <h2>{ &self.props.title }</h2>
-                <div class="reason-modal-body">
+                <div id="modal-body" class="reason-modal-body">
                     { for reason_lines.iter().map(|line| html! { <p>{ line }</p> }) }
                 </div>
                 <button class="reason-modal-button" onclick=self.link.callback(|_| Msg::Close)>{ "Cerrar" }</button>
