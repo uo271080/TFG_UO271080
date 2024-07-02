@@ -50,11 +50,11 @@ impl Component for Header {
                         <div class="logo"><a href="#">{"WASM - RDF VALIDATOR"}</a></div>
                         <ul class="nav-links">
                             <li class="dropdown">
-                                <button class="dropbtn">{"LOAD EXAMPLE"}</button>
+                                <button id="examples-dropdown" class="dropbtn">{"LOAD EXAMPLE"}</button>
                                 <div class="dropdown-content">
-                                    <a class="dropdown-btn" href="#" onclick=self.link.callback(|_| Msg::LoadExample("example1".to_string()))>{"Example 1"}</a>
-                                    <a class="dropdown-btn" href="#" onclick=self.link.callback(|_| Msg::LoadExample("example2".to_string()))>{"Example 2"}</a>
-                                    <a class="dropdown-btn" href="#" onclick=self.link.callback(|_| Msg::LoadExample("example3".to_string()))>{"Example 3"}</a>
+                                    <a id="example-1" class="dropdown-btn" href="#" onclick=self.link.callback(|_| Msg::LoadExample("example1".to_string()))>{"Example 1"}</a>
+                                    <a id="example-2" class="dropdown-btn" href="#" onclick=self.link.callback(|_| Msg::LoadExample("example2".to_string()))>{"Example 2"}</a>
+                                    <a id="example-3" class="dropdown-btn" href="#" onclick=self.link.callback(|_| Msg::LoadExample("example3".to_string()))>{"Example 3"}</a>
                                 </div>
                             </li>
                         </ul>

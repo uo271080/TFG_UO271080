@@ -242,6 +242,7 @@ impl Component for Editor {
                     <div class="shapemap-container">
                         <h3 class="title-editor">{"ShapeMap"}</h3>
                         <textarea
+                            id="shapemap-editor"
                             class="shapemap-editor"
                             value=&self.props.shapemap_value
                             oninput=self.link.callback(|e: InputData| Msg::UpdateShapeMapValue(e.value))

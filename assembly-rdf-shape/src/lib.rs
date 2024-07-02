@@ -3,6 +3,7 @@ mod app;
 mod components;
 mod test;
 use wasm_bindgen::prelude::*;
+mod tests;
 
 // This is the entry point for the web app
 #[wasm_bindgen]

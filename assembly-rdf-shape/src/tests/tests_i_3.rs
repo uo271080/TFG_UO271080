@@ -1,3 +1,4 @@
+#[cfg(test)]
 mod tests_i_3 {
     use headless_chrome::Browser;
     use std::error::Error;
