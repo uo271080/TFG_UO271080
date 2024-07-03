@@ -340,8 +340,8 @@ impl App {
                                 }
                             } else if !self.state.api_error.is_empty() {
                                 html! {
-                                    <div class="alert-error">
-                                        {"Se ha detectado un error en los datos proporcionados. Por favor, revise las entradas."}
+                                    <div id="alert-modal" class="alert-error">
+                                        {"An error has been detected in the provided data. Please review the inputs."}
                                         <button class={"close-btn "} onclick=self.link.callback(|_| Msg::CloseAlert)>{ "X" }</button>
                                     </div>
                                 }

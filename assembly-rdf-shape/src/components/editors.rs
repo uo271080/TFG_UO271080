@@ -194,15 +194,15 @@ impl Component for Editor {
             }
             Msg::UpdateRdfParamSelected(value) => {
                 self.rdf_param_selected = value;
-                false
+                true
             }
             Msg::UpdateShexParamSelected(value) => {
                 self.shex_param_selected = value;
-                false
+                true
             }
             Msg::UpdateShapeMapParamSelected(value) => {
                 self.shapemap_param_selected = value;
-                false
+                true
             }
         }
     }
@@ -210,9 +210,6 @@ impl Component for Editor {
     /// Gestiona cambios en las propiedades del componente.
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
         if self.props != props {
-            self.rdf_param_selected = props.rdf_format.clone();
-            self.shex_param_selected = props.shex_format.clone();
-            self.shapemap_param_selected = props.shapemap_format.clone();
             self.props = props;
             true
         } else {
@@ -258,7 +255,7 @@ impl Component for Editor {
                         <button id="analyze-shex" class="analyze-btn" onclick=self.link.callback(|_| Msg::AnalyzeShex)>{"Analyze"}</button>
                     </div>
                     <div style="margin-top: auto;">
-                        <button class="button-27" onclick=self.link.callback(|_| Msg::Validate)>
+                        <button id="validate-btn" class="button-27" onclick=self.link.callback(|_| Msg::Validate)>
                             { "VALIDATE" }
                         </button>
                     </div>
