@@ -1,40 +1,40 @@
 #[cfg(test)]
-mod tests_u_1 {
+mod tests_u_2 {
     use headless_chrome::Browser;
     use std::error::Error;
 
-    const E_10: &str = r#"
-    prefix :       <http://example.org/>
-prefix xsd:    <http://www.w3.org/2001/XMLSchema#>
-prefix schema: <http://schema.org/>
+    const E_1: &str = r#"
+PREFIX :       <http://example.org/>
+PREFIX schema: <http://schema.org/>
+PREFIX xsd:    <http://www.w3.org/2001/XMLSchema#>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
 
-:book1  :title      "Book One" ;
-        :author     :author1 ;
-        :published  "2020-01-01"^^xsd:date ;
-        :genre      "Fiction" ;
-        :related    :book2 .
+:alice schema:name      "Alice" ;
+       schema:gender    schema:Female ;
+       schema:knows     :bob .
 
-:book2  :title      "Book Two" ;
-        :author     :author2 ;
-        :published  "2021-05-15"^^xsd:date ;
-        :genre      "Non-Fiction" ;
-        :related    :book1, :book3 .
+:bob   schema:gender    schema:Male ;
+       schema:name      "Robert" ;
+       schema:birthDate "1980-03-10"^^xsd:date .
 "#;
 
-    const E_11: &str = r#"
-prefix :       <http://example.org/>
-prefix xsd:    <http://www.w3.org/2001/XMLSchema#>
-prefix schema: <http://schema.org/>
+    const E_2: &str = r#"
+PREFIX :       <http://example.org/>
+PREFIX schema: <http://schema.org/>
+PREFIX xsd:    <http://www.w3.org/2001/XMLSchema#>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
 
-:author1  :name    "Author One" ;
-          :birthDate  "1970-12-05"^^xsd:date .
+:charlie schema:name      "Charlie" ;
+         schema:gender    schema:Male ;
+         schema:knows     :alice .
 
-:author2  :name    "Author Two" ;
-          :birthDate  "1985-03-22"^^xsd:date .
+:alice   schema:gender    schema:Female ;
+         schema:name      "Alice" ;
+         schema:birthDate "1990-04-15"^^xsd:date .
 "#;
 
     #[test]
-    fn u_1_1() -> Result<(), Box<dyn Error>> {
+    fn u_2_1() -> Result<(), Box<dyn Error>> {
         let browser = Browser::default()?;
         let tab = browser.new_tab()?;
 
@@ -45,23 +45,23 @@ prefix schema: <http://schema.org/>
         tab.evaluate(
             &format!(
                 r#"
-            window.yateInstance.setValue(`{}`);
+            window.yasheInstance.setValue(`{}`);
             "#,
-                E_10.replace("`", "\\`")
+                E_1.replace("`", "\\`")
             ),
             false,
         )?;
 
         let remote_object = tab.evaluate(
             r#"
-            window.yateInstance.getValue();
+            window.yasheInstance.getValue();
             "#,
             false,
         )?;
 
         match remote_object.value {
             Some(returned_value) => {
-                assert_eq!(returned_value.as_str().unwrap_or("").trim(), E_10.trim())
+                assert_eq!(returned_value.as_str().unwrap_or("").trim(), E_1.trim())
             }
             _ => unreachable!(),
         };
@@ -70,7 +70,7 @@ prefix schema: <http://schema.org/>
     }
 
     #[test]
-    fn u_1_2() -> Result<(), Box<dyn Error>> {
+    fn u_2_2() -> Result<(), Box<dyn Error>> {
         let browser = Browser::default()?;
         let tab = browser.new_tab()?;
 
@@ -81,9 +81,9 @@ prefix schema: <http://schema.org/>
         tab.evaluate(
             &format!(
                 r#"
-            window.yateInstance.setValue(`{}`);
+            window.yasheInstance.setValue(`{}`);
             "#,
-                E_11.replace("`", "\\`")
+                E_1.replace("`", "\\`")
             ),
             false,
         )?;
@@ -91,23 +91,23 @@ prefix schema: <http://schema.org/>
         tab.evaluate(
             &format!(
                 r#"
-            window.yateInstance.setValue(`{}`);
+            window.yasheInstance.setValue(`{}`);
             "#,
-                E_11.replace("`", "\\`")
+                E_2.replace("`", "\\`")
             ),
             false,
         )?;
 
         let remote_object = tab.evaluate(
             r#"
-            window.yateInstance.getValue();
+            window.yasheInstance.getValue();
             "#,
             false,
         )?;
 
         match remote_object.value {
             Some(returned_value) => {
-                assert_eq!(returned_value.as_str().unwrap_or("").trim(), E_11.trim())
+                assert_eq!(returned_value.as_str().unwrap_or("").trim(), E_2.trim())
             }
             _ => unreachable!(),
         };
@@ -116,7 +116,7 @@ prefix schema: <http://schema.org/>
     }
 
     #[test]
-    fn u_1_3() -> Result<(), Box<dyn Error>> {
+    fn u_2_3() -> Result<(), Box<dyn Error>> {
         let browser = Browser::default()?;
         let tab = browser.new_tab()?;
 
@@ -127,23 +127,23 @@ prefix schema: <http://schema.org/>
         tab.evaluate(
             &format!(
                 r#"
-        window.yateInstance.setValue(`{}`);
+        window.yasheInstance.setValue(`{}`);
         "#,
-                E_11.replace("`", "\\`")
+                E_1.replace("`", "\\`")
             ),
             false,
         )?;
 
         tab.evaluate(
             r#"
-        window.yateInstance.setValue(``);
+        window.yasheInstance.setValue(``);
         "#,
             false,
         )?;
 
         let remote_object = tab.evaluate(
             r#"
-        window.yateInstance.getValue();
+        window.yasheInstance.getValue();
         "#,
             false,
         )?;

@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests_i_4 {
     use headless_chrome::Browser;
-    use log::info;
     use std::{error::Error, time::Duration};
 
     const E_5: &str = r#"
