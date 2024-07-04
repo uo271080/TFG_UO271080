@@ -33,15 +33,14 @@ pub struct ExampleData {
 /// * Retorna un error si la solicitud HTTP no se puede completar o si el estado HTTP no es 200.
 /// * Retorna un error si la deserialización del JSON falla.
 pub async fn load_example(file: String) -> Result<ExampleData, String> {
-    // let mut public_url = env::var("https://uo271080.github.io/TFG_UO271080/")
-    //     .unwrap_or("https://uo271080.github.io/TFG_UO271080/".to_string());
-    // if !public_url.ends_with('/') {
-    //     public_url.push('/');
-    // }
+    let mut public_url = env::var("https://uo271080.github.io/TFG_UO271080/")
+        .unwrap_or("https://uo271080.github.io/TFG_UO271080/".to_string());
+    if !public_url.ends_with('/') {
+        public_url.push('/');
+    }
 
-    // let path = format!("{}static/{}.json", public_url, file);
+    let path = format!("{}static/{}.json", public_url, file);
 
-    let path = format!("/static/{}.json", file);
     let response = Request::get(&path)
         .send()
         .await
