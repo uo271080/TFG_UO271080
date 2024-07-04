@@ -107,6 +107,7 @@ pub struct State {
     show_modal: bool,
     modal_info: ModalInfo,
     is_loading: bool,
+    example_loaded: bool,
 }
 
 /// Enum para los mensajes que se pueden enviar al componente
@@ -132,6 +133,7 @@ pub enum Msg {
     OpenModal(String, String),
     /// Cierra el modal actualmente abierto.
     CloseModal,
+    ResetExampleLoaded,
 }
 
 /// Implementación del componente App
@@ -155,6 +157,7 @@ impl Component for App {
             api_error: "".into(),
             modal_info: Default::default(),
             is_loading: false,
+            example_loaded: false,
         };
         App {
             link,
@@ -252,11 +255,15 @@ impl Component for App {
                     self.state.rdf_format = data.rdf_format;
                     self.state.shex_format = data.shex_format;
                     self.state.shapemap_format = data.shapemap_format;
+                    self.state.example_loaded = true;
                 }
                 Err(error) => {
                     self.state.api_error = error;
                 }
             },
+            Msg::ResetExampleLoaded => {
+                self.state.example_loaded = false;
+            }
         }
         true
     }
@@ -277,18 +284,20 @@ impl Component for App {
                 <section class="app">
                     <Header on_load_example=self.link.callback(Msg::LoadExample) />
                     <div class="content">
-                        <Editor
-                            shapemap_value=self.state.shapemap_value.clone()
-                            rdf_format=self.state.rdf_format.clone()
-                            shex_format=self.state.shex_format.clone()
-                            shapemap_format=self.state.shapemap_format.clone()
-                            on_update_shapemap_value=self.link.callback(Msg::UpdateShapeMapValue)
-                            on_validate=self.link.callback(|(rdf_param, shex_param, shapemap_param)| Msg::Validate(rdf_param, shex_param, shapemap_param))
-                            on_open_modal=self.link.callback(|(title, content)| Msg::OpenModal(title, content))
-                            rdf_parameters=self.rdf_parameters.clone()
-                            shex_parameters=self.shex_parameters.clone()
-                            shapemap_parameters=self.shapemap_parameters.clone()
-                        />
+                    <Editor
+                    shapemap_value=self.state.shapemap_value.clone()
+                    rdf_format=self.state.rdf_format.clone()
+                    shex_format=self.state.shex_format.clone()
+                    shapemap_format=self.state.shapemap_format.clone()
+                    on_update_shapemap_value=self.link.callback(Msg::UpdateShapeMapValue)
+                    on_validate=self.link.callback(|(rdf_param, shex_param, shapemap_param)| Msg::Validate(rdf_param, shex_param, shapemap_param))
+                    on_open_modal=self.link.callback(|(title, content)| Msg::OpenModal(title, content))
+                    rdf_parameters=self.rdf_parameters.clone()
+                    shex_parameters=self.shex_parameters.clone()
+                    shapemap_parameters=self.shapemap_parameters.clone()
+                    example_loaded=self.state.example_loaded
+                    reset_example_loaded=self.link.callback(|_| Msg::ResetExampleLoaded)
+                />
                         <div class="footer-options">
                         </div>
                         <div class="result-container">
@@ -340,8 +349,8 @@ impl App {
                                 }
                             } else if !self.state.api_error.is_empty() {
                                 html! {
-                                    <div class="alert-error">
-                                        {"Se ha detectado un error en los datos proporcionados. Por favor, revise las entradas."}
+                                    <div id="alert-modal" class="alert-error">
+                                        {"An error has been detected in the provided data. Please review the inputs."}
                                         <button class={"close-btn "} onclick=self.link.callback(|_| Msg::CloseAlert)>{ "X" }</button>
                                     </div>
                                 }

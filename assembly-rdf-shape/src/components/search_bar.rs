@@ -62,6 +62,7 @@ impl Component for SearchBar {
     fn view(&self) -> Html {
         html! {
         <input type="text"
+        id="search-input"
         class="search"
         placeholder="Buscar..."
         oninput=self.link.callback(|e: InputData| Msg::Search(e.value)) />        }

@@ -59,6 +59,8 @@ pub struct Props {
     pub rdf_parameters: Vec<String>,
     pub shex_parameters: Vec<String>,
     pub shapemap_parameters: Vec<String>,
+    pub example_loaded: bool,
+    pub reset_example_loaded: Callback<()>,
 }
 
 /// Componente `Editor` que maneja editores de texto para RDF, ShEx y ShapeMap.
@@ -194,30 +196,29 @@ impl Component for Editor {
             }
             Msg::UpdateRdfParamSelected(value) => {
                 self.rdf_param_selected = value;
-                false
+                true
             }
             Msg::UpdateShexParamSelected(value) => {
                 self.shex_param_selected = value;
-                false
+                true
             }
             Msg::UpdateShapeMapParamSelected(value) => {
                 self.shapemap_param_selected = value;
-                false
+                true
             }
         }
     }
 
     /// Gestiona cambios en las propiedades del componente.
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        if self.props != props {
+        if props.example_loaded {
             self.rdf_param_selected = props.rdf_format.clone();
             self.shex_param_selected = props.shex_format.clone();
             self.shapemap_param_selected = props.shapemap_format.clone();
-            self.props = props;
-            true
-        } else {
-            false
+            self.props.reset_example_loaded.emit(());
         }
+        self.props = props;
+        true
     }
 
     /// Se llama después de que el componente es renderizado.
@@ -237,11 +238,12 @@ impl Component for Editor {
                     <textarea id="editor-yate"></textarea>
                     <div class="editor-tools">
                         { self.view_parameters(&self.props.rdf_parameters, "rdf") }
-                        <button class="analyze-btn" onclick=self.link.callback(|_| Msg::AnalyzeRDF)>{"Analyze"}</button>
+                        <button id="analyze-rdf" class="analyze-btn" onclick=self.link.callback(|_| Msg::AnalyzeRDF)>{"Analyze"}</button>
                     </div>
                     <div class="shapemap-container">
                         <h3 class="title-editor">{"ShapeMap"}</h3>
                         <textarea
+                            id="shapemap-editor"
                             class="shapemap-editor"
                             value=&self.props.shapemap_value
                             oninput=self.link.callback(|e: InputData| Msg::UpdateShapeMapValue(e.value))
@@ -254,10 +256,10 @@ impl Component for Editor {
                     <textarea id="editor-yashe"></textarea>
                     <div class="editor-tools">
                         { self.view_parameters(&self.props.shex_parameters, "shex") }
-                        <button class="analyze-btn" onclick=self.link.callback(|_| Msg::AnalyzeShex)>{"Analyze"}</button>
+                        <button id="analyze-shex" class="analyze-btn" onclick=self.link.callback(|_| Msg::AnalyzeShex)>{"Analyze"}</button>
                     </div>
                     <div style="margin-top: auto;">
-                        <button class="button-27" onclick=self.link.callback(|_| Msg::Validate)>
+                        <button id="validate-btn" class="button-27" onclick=self.link.callback(|_| Msg::Validate)>
                             { "VALIDATE" }
                         </button>
                     </div>

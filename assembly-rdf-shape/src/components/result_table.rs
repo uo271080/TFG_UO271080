@@ -159,7 +159,7 @@ impl Component for ResultTable {
             <div class="result" id="result">
                 <div class="table-controls">
                     <SearchBar on_search=self.link.callback(Msg::UpdateSearchText) />
-                    <button class="download-btn" onclick=self.link.callback(|_| Msg::ExportToCsv)> <i class="fas fa-download"></i></button>
+                    <button id="export-btn" class="download-btn" onclick=self.link.callback(|_| Msg::ExportToCsv)> <i class="fas fa-download"></i></button>
                 </div>
                 <table id="result-table">
                     <tr>
@@ -229,7 +229,7 @@ impl ResultTable {
                     <span class="material-icons">{"chevron_left"}</span>
                 </li>
                 { for (0..=max_page).map(|page| self.view_page_button(page)) }
-                <li class={ if self.show_all == true { "page__numbers active" } else { "page__numbers" } } onclick=self.link.callback(|_| Msg::ShowAll)>
+                <li id="show-all" class={ if self.show_all == true { "page__numbers active" } else { "page__numbers" } } onclick=self.link.callback(|_| Msg::ShowAll)>
                     { "All" }
                 </li>
                 <li class={ if is_next_active { "page__btn active" } else { "page__btn" } }
