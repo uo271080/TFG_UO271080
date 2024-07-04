@@ -1,5 +1,8 @@
 {
-  "rdf": "PREFIX : <http://example.org/>\nPREFIX schema: <http://schema.org/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\nPREFIX foaf: <http://xmlns.com/foaf/0.1/>\n\n:alice schema:name \"Alice\" ;\n       schema:gender schema:Female ;\n       schema:knows :bob .\n\n:bob schema:gender schema:Male ;\n       schema:name \"Robert\" ;\n       schema:birthDate \"1980-03-10\"^^xsd:date .\n\n:carol schema:name \"Carol\" ;\n       schema:gender \"unspecified\" ;\n       foaf:name \"Carol\" .\n\n:dave schema:name \"Dave\" ;\n       schema:gender \"XYY\" ;\n       schema:birthDate \"1980-01-01\"^^xsd:date .\n\n:emily schema:name \"Emily\" ;\n       schema:alternateName \"Emilee\" ;\n       schema:gender schema:Female .\n\n:frank schema:name \"Frank\" ;\n       schema:gender schema:Male .\n\n:grace schema:name \"Grace\" ;\n       schema:gender schema:Male ;\n       schema:knows :bob .\n\n:harold schema:name \"Harold\" ;\n        schema:gender schema:Male ;\n        schema:knows :grace .",
-  "shex": "PREFIX : <http://example.org/>\nPREFIX schema: <http://schema.org/>\nPREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n\n:User {\n  schema:name xsd:string ;\n  schema:birthDate xsd:date? ;\n  schema:gender [ schema:Male schema:Female ] OR xsd:string ;\n  schema:knows IRI @:User*\n}",
-  "shapemap": ":juan@:User,:teresa@:User,:carola@:User,:pedro@:User,:sofia@:User,:maria@:User,:paquita@:User"
+  "rdf": "prefix :       <http://example.org/>\nprefix xsd:    <http://www.w3.org/2001/XMLSchema#>\nprefix schema: <http://schema.org/>\n\n:a  :name    \"Title A\" ;\n    :related :b  .\n\n:b  :related :a ;\n    :name    \"Title B\".\n\n:c  :name  \"Title C1\", \"Title C2\" .\n\n:d  :name  234 .\n\n:e  :namme  \"Title E\" .\n\n:f  :name    \"Title F\" ;\n    :related :a, _:1 .\n\n_:1 :name  \"Unknown title\" .",
+  "shex": "prefix :       <http://example.org/>\nprefix xsd:    <http://www.w3.org/2001/XMLSchema#>\nprefix schema: <http://schema.org/>\n\n:Book IRI and {\n :name   xsd:string   ;\n :related      @:Book     *\n}",
+  "shapemap": ":a@:Book,\n:b@:Book,\n:c@:Book,\n:d@:Book,\n:e@:Book,\n:f@:Book",
+  "rdf_format": "Turtle",
+  "shex_format": "ShExC",
+  "shapemap_format": "Compact"
 }
