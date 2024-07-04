@@ -59,6 +59,8 @@ pub struct Props {
     pub rdf_parameters: Vec<String>,
     pub shex_parameters: Vec<String>,
     pub shapemap_parameters: Vec<String>,
+    pub example_loaded: bool,
+    pub reset_example_loaded: Callback<()>,
 }
 
 /// Componente `Editor` que maneja editores de texto para RDF, ShEx y ShapeMap.
@@ -209,12 +211,14 @@ impl Component for Editor {
 
     /// Gestiona cambios en las propiedades del componente.
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        if self.props != props {
-            self.props = props;
-            true
-        } else {
-            false
+        if props.example_loaded {
+            self.rdf_param_selected = props.rdf_format.clone();
+            self.shex_param_selected = props.shex_format.clone();
+            self.shapemap_param_selected = props.shapemap_format.clone();
+            self.props.reset_example_loaded.emit(());
         }
+        self.props = props;
+        true
     }
 
     /// Se llama después de que el componente es renderizado.
