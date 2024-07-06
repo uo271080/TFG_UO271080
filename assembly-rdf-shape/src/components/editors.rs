@@ -283,6 +283,7 @@ impl Editor {
 
         html! {
             <select
+                title={"Format"}
                 class={select_class}
                 id={id}
                 onchange=self.link.callback(move |e: ChangeData| {
