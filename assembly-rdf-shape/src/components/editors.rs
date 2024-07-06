@@ -55,7 +55,7 @@ pub struct Props {
     pub shapemap_format: String,
     pub on_update_shapemap_value: Callback<String>,
     pub on_validate: Callback<(String, String, String)>,
-    pub on_open_modal: Callback<(String, String)>,
+    pub on_open_modal: Callback<(String, Html)>,
     pub rdf_parameters: Vec<String>,
     pub shex_parameters: Vec<String>,
     pub shapemap_parameters: Vec<String>,
@@ -145,21 +145,25 @@ impl Component for Editor {
                 false
             }
             Msg::ReceiveRDFAnalysis(result) => {
-                if !result.1.is_empty() {
-                    let content = format!("Status: RDF is not well-formed.");
-                    self.props
-                        .on_open_modal
-                        .emit(("RDF PROPERTIES".to_string(), content));
+                let content = if !result.1.is_empty() {
+                    html! {
+                        <>
+                            <p>{"Status: RDF is not well-formed."}</p>
+                        </>
+                    }
                 } else {
                     let number_statements = result.0.result.number_of_statements;
-                    let content = format!(
-                        "Status: {}\nNumber of statements: {}",
-                        result.0.message, number_statements
-                    );
-                    self.props
-                        .on_open_modal
-                        .emit(("RDF PROPERTIES".to_string(), content));
-                }
+                    html! {
+                        <>
+                            <p>{format!("Status: {}", result.0.message)}</p>
+                            <p>{format!("Number of statements: {}", number_statements)}</p>
+                        </>
+                    }
+                };
+
+                self.props
+                    .on_open_modal
+                    .emit(("RDF PROPERTIES".to_string(), content));
                 false
             }
             Msg::AnalyzeShex => {
@@ -174,24 +178,28 @@ impl Component for Editor {
                 false
             }
             Msg::ReceiveShexAnalysis(result) => {
-                if !result.1.is_empty() {
+                let content = if !result.1.is_empty() {
                     self.analyzer_error = true;
-                    let content = format!("Status: Schema is not well-formed.");
-                    self.props
-                        .on_open_modal
-                        .emit(("SHEX PROPERTIES".to_string(), content));
+                    html! {
+                        <>
+                            <p>{"Status: Schema is not well-formed."}</p>
+                        </>
+                    }
                 } else {
                     let number_shapes = result.0.result.shapes.len();
                     let number_prefixes = result.0.result.prefix_map.len();
+                    html! {
+                        <>
+                            <p>{format!("Status: {}", result.0.message)}</p>
+                            <p>{format!("Number of shapes: {}", number_shapes)}</p>
+                            <p>{format!("Number of prefixes: {}", number_prefixes)}</p>
+                        </>
+                    }
+                };
 
-                    let content = format!(
-                        "Status: {}\nNumber of shapes: {}\nNumber of prefixes: {}",
-                        result.0.message, number_shapes, number_prefixes
-                    );
-                    self.props
-                        .on_open_modal
-                        .emit(("SHEX PROPERTIES".to_string(), content));
-                }
+                self.props
+                    .on_open_modal
+                    .emit(("SHEX PROPERTIES".to_string(), content));
                 false
             }
             Msg::UpdateRdfParamSelected(value) => {
@@ -283,6 +291,7 @@ impl Editor {
 
         html! {
             <select
+                title={"Format"}
                 class={select_class}
                 id={id}
                 onchange=self.link.callback(move |e: ChangeData| {

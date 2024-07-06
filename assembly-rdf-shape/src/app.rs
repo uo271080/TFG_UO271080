@@ -87,7 +87,8 @@ extern "C" {
 #[derive(Serialize, Deserialize, Default)]
 pub struct ModalInfo {
     title: String,
-    content: String,
+    #[serde(skip)]
+    content: Html,
 }
 
 /// Estructura para mantener el estado de la aplicación
@@ -130,7 +131,7 @@ pub enum Msg {
     CloseAlert,
     /// Abre un modal con información detallada.
     /// `String, String` contiene el título y el contenido del modal, respectivamente.
-    OpenModal(String, String),
+    OpenModal(String, Html),
     /// Cierra el modal actualmente abierto.
     CloseModal,
     ResetExampleLoaded,
@@ -216,7 +217,6 @@ impl Component for App {
             Msg::OpenModal(title, content) => {
                 print!("LLEGO A OPEN MODAL");
                 print!("{}", title);
-                print!("{}", content);
                 self.state.show_modal = true;
                 self.state.modal_info = ModalInfo {
                     title: title,
@@ -282,22 +282,25 @@ impl Component for App {
         html! {
             <div class="todomvc-wrapper">
                 <section class="app">
-                    <Header on_load_example=self.link.callback(Msg::LoadExample) />
+                    <Header
+                        on_load_example=self.link.callback(Msg::LoadExample)
+                        on_open_modal=self.link.callback(|(title, content)| Msg::OpenModal(title, content))
+                    />
                     <div class="content">
                     <Editor
-                    shapemap_value=self.state.shapemap_value.clone()
-                    rdf_format=self.state.rdf_format.clone()
-                    shex_format=self.state.shex_format.clone()
-                    shapemap_format=self.state.shapemap_format.clone()
-                    on_update_shapemap_value=self.link.callback(Msg::UpdateShapeMapValue)
-                    on_validate=self.link.callback(|(rdf_param, shex_param, shapemap_param)| Msg::Validate(rdf_param, shex_param, shapemap_param))
-                    on_open_modal=self.link.callback(|(title, content)| Msg::OpenModal(title, content))
-                    rdf_parameters=self.rdf_parameters.clone()
-                    shex_parameters=self.shex_parameters.clone()
-                    shapemap_parameters=self.shapemap_parameters.clone()
-                    example_loaded=self.state.example_loaded
-                    reset_example_loaded=self.link.callback(|_| Msg::ResetExampleLoaded)
-                />
+                        shapemap_value=self.state.shapemap_value.clone()
+                        rdf_format=self.state.rdf_format.clone()
+                        shex_format=self.state.shex_format.clone()
+                        shapemap_format=self.state.shapemap_format.clone()
+                        on_update_shapemap_value=self.link.callback(Msg::UpdateShapeMapValue)
+                        on_validate=self.link.callback(|(rdf_param, shex_param, shapemap_param)| Msg::Validate(rdf_param, shex_param, shapemap_param))
+                        on_open_modal=self.link.callback(|(title, content)| Msg::OpenModal(title, content))
+                        rdf_parameters=self.rdf_parameters.clone()
+                        shex_parameters=self.shex_parameters.clone()
+                        shapemap_parameters=self.shapemap_parameters.clone()
+                        example_loaded=self.state.example_loaded
+                        reset_example_loaded=self.link.callback(|_| Msg::ResetExampleLoaded)
+                    />
                         <div class="footer-options">
                         </div>
                         <div class="result-container">
