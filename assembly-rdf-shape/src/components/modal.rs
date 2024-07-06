@@ -9,7 +9,7 @@ pub struct Props {
     /// Título que se mostrará en la cabecera del modal.
     pub title: String,
     /// Contenido del modal que se mostrará como cuerpo del mismo. Puede incluir texto con saltos de línea para mejor formato.
-    pub content: String,
+    pub content: Html,
     /// `Callback` que se activa cuando se cierra el modal. No devuelve ningún valor.
     pub on_close: Callback<()>,
 }
@@ -57,15 +57,13 @@ impl Component for Modal {
     /// Devuelve el marcado HTML para el modal, incluyendo el título, cuerpo y un botón de cierre.
     fn view(&self) -> Html {
         info!("desde modal!!!!!!!!");
-        info!("{}", &self.props.content);
-
-        let reason_lines: Vec<&str> = self.props.content.split('\n').collect();
+        info!("{}", &self.props.title);
 
         html! {
             <div class="reason-modal">
                 <h2>{ &self.props.title }</h2>
                 <div id="modal-body" class="reason-modal-body">
-                    { for reason_lines.iter().map(|line| html! { <p>{ line }</p> }) }
+                    { self.props.content.clone() }
                 </div>
                 <button class="reason-modal-button" onclick=self.link.callback(|_| Msg::Close)>{ "Cerrar" }</button>
             </div>

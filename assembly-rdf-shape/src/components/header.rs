@@ -12,7 +12,7 @@ pub struct Header {
 #[derive(Properties, Clone, PartialEq)]
 pub struct Props {
     pub on_load_example: Callback<String>,
-    pub on_open_modal: Callback<(String, String)>,
+    pub on_open_modal: Callback<(String, Html)>,
 }
 
 pub enum Msg {
@@ -38,26 +38,45 @@ impl Component for Header {
             }
             Msg::Help() => {
                 let title = "HELP";
-                let body = "Welcome to WASM - RDF Validator. This tool allows you to validate RDF data using Shex and ShapeMap.\n\n\
-    TO GET STARTED, FOLLOW THESE STEPS:\n\
-    1. Insert your RDF data in the editor labeled 'RDF'.\n\
-    2. Insert your Shex data in the editor labeled 'Shex'. Here you define the shapes that will be used to validate your RDF data.\n\
-    3. Insert your ShapeMap data in the editor labeled 'ShapeMap'. The ShapeMap links your RDF data with the shapes defined in Shex.\n\n\
-    FORMAT OPTIONS:\n\
-    -> RDF: You can choose between different formats:\n\t • Turtle \n\t • N-Triples \n\t • N-Quads \n\t • TriG \n\t • JSON-LD \n\t • RDF/XML \n\t • RDF/JSON \n\t • Mixed \n\t • html-rdfa11 \n\t • html-microdata \n\
-    -> Shex: You can choose between ShexC and ShExJ formats.\n\
-    -> ShapeMap: You can choose between Compact or JSON formats.\n\n\
-    ---\n\
-    ANALYSIS AND VALIDATION:\n\
-    - Use the 'Analyze' button to analyze the Shex and RDF inputs separately.\n\
-    - Use the 'Validate' button to validate your data. The results will be displayed in a table indicating whether your data complies with the defined shapes.\n\n\
-    ---\n\
-    WHAT IS VALIDATION?\n\
-    Validation is the process of verifying that the RDF data conforms to the rules defined in the Shex shapes. This ensures that the data is correctly structured and meets the expected requirements.\n\n\
-    ";
-                self.props
-                    .on_open_modal
-                    .emit((title.to_string(), body.to_string()));
+                let body = html! {
+                    <>
+                    <p>{"Welcome to WASM - RDF Validator. This tool allows you to validate RDF data using Shex and ShapeMap."}</p>
+                    <p><strong>{"To get started, follow these steps:"}</strong></p>
+                    <ol>
+                        <li>{"Insert your RDF data in the editor labeled 'RDF'."}</li>
+                        <li>{"Insert your Shex data in the editor labeled 'Shex'. Here you define the shapes that will be used to validate your RDF data."}</li>
+                        <li>{"Insert your ShapeMap data in the editor labeled 'ShapeMap'. The ShapeMap links your RDF data with the shapes defined in Shex."}</li>
+                    </ol>
+                    <p><strong>{"Format Options:"}</strong></p>
+                    <ul>
+                        <li>{"RDF: You can choose between different formats:"}</li>
+                        <ul>
+                            <li>{"• Turtle"}</li>
+                            <li>{"• N-Triples"}</li>
+                            <li>{"• N-Quads"}</li>
+                            <li>{"• TriG"}</li>
+                            <li>{"• JSON-LD"}</li>
+                            <li>{"• RDF/XML"}</li>
+                            <li>{"• RDF/JSON"}</li>
+                            <li>{"• Mixed"}</li>
+                            <li>{"• html-rdfa11"}</li>
+                            <li>{"• html-microdata"}</li>
+                        </ul>
+                        <li>{"Shex: You can choose between ShexC and ShExJ formats."}</li>
+                        <li>{"ShapeMap: You can choose between Compact format or JSON formats."}</li>
+                    </ul>
+                    <hr />
+                    <p><strong>{"Analysis and Validation:"}</strong></p>
+                    <ul>
+                        <li>{"Use the 'Analyze' button to analyze the Shex and RDF inputs separately."}</li>
+                        <li>{"Use the 'Validate' button to validate your data. The results will be displayed in a table indicating whether your data complies with the defined shapes."}</li>
+                    </ul>
+                    <hr />
+                    <p><strong>{"What is validation?"}</strong></p>
+                    <p>{"Validation is the process of verifying that the RDF data conforms to the rules defined in the Shex shapes. This ensures that the data is correctly structured and meets the expected requirements."}</p>
+                    </>
+                };
+                self.props.on_open_modal.emit((title.to_string(), body));
                 true
             }
         }

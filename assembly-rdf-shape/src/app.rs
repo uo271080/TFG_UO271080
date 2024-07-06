@@ -87,7 +87,8 @@ extern "C" {
 #[derive(Serialize, Deserialize, Default)]
 pub struct ModalInfo {
     title: String,
-    content: String,
+    #[serde(skip)]
+    content: Html,
 }
 
 /// Estructura para mantener el estado de la aplicación
@@ -130,7 +131,7 @@ pub enum Msg {
     CloseAlert,
     /// Abre un modal con información detallada.
     /// `String, String` contiene el título y el contenido del modal, respectivamente.
-    OpenModal(String, String),
+    OpenModal(String, Html),
     /// Cierra el modal actualmente abierto.
     CloseModal,
     ResetExampleLoaded,
@@ -216,7 +217,6 @@ impl Component for App {
             Msg::OpenModal(title, content) => {
                 print!("LLEGO A OPEN MODAL");
                 print!("{}", title);
-                print!("{}", content);
                 self.state.show_modal = true;
                 self.state.modal_info = ModalInfo {
                     title: title,

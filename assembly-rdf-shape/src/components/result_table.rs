@@ -1,7 +1,3 @@
-/// Componente `ResultTable` que gestiona la visualización de resultados en formato tabla.
-///
-/// Este componente proporciona funcionalidades para paginar, buscar, exportar a CSV, y abrir modales con detalles
-/// de cada entrada. Utiliza propiedades y mensajes para interactuar con el estado y las acciones del usuario.
 use crate::app::api::ShapeMapEntry;
 use crate::components::search_bar::SearchBar;
 use wasm_bindgen::prelude::*;
@@ -33,7 +29,7 @@ pub struct Props {
     /// Texto de búsqueda actual para filtrar las entradas.
     pub search_text: String,
     /// Callback para abrir un modal con información detallada.
-    pub on_open_modal: Callback<(String, String)>,
+    pub on_open_modal: Callback<(String, Html)>,
 }
 
 /// Estado y lógica del componente `ResultTable`.
@@ -48,7 +44,7 @@ pub struct ResultTable {
 /// Mensajes utilizados por `ResultTable` para manejar eventos de la interfaz de usuario.
 pub enum Msg {
     /// Abre un modal con detalles específicos.
-    OpenModal(String, String),
+    OpenModal(String, Html),
     /// Avanza a la próxima página de resultados.
     NextPage,
     /// Regresa a la página anterior de resultados.
@@ -81,8 +77,9 @@ impl Component for ResultTable {
     /// Actualiza el estado del componente en respuesta a los mensajes.
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::OpenModal(node, reason) => {
-                self.props.on_open_modal.emit((node, reason));
+            Msg::OpenModal(node, content) => {
+                let title = format!("Node {}", node);
+                self.props.on_open_modal.emit((title, content));
                 true
             }
             Msg::UpdateSearchText(text) => {
@@ -130,7 +127,6 @@ impl Component for ResultTable {
     }
 
     /// Renderiza el componente como HTML.
-
     fn view(&self) -> Html {
         let filtered_entries: Vec<&ShapeMapEntry> = self
             .props
@@ -201,14 +197,29 @@ impl ResultTable {
 
     /// Renderiza una entrada individual en la tabla.
     fn view_entry(&self, entry: &ShapeMapEntry) -> Html {
-        let cloned_entry = entry.clone();
+        let node = entry.node.clone();
+        let content = html! {
+            <>
+                <hr />
+                <p><strong>{"Status"}</strong></p>
+                <p>{entry.status.clone()}</p>
+                <hr />
+                <hr />
+                <p><strong>{"Shape"}</strong></p>
+                <p>{entry.shape.clone()}</p>
+                <hr />
+                <p><strong>{"Reason"}</strong></p>
+                <p>{entry.reason.clone()}</p>
+            </>
+        };
+
         html! {
             <tr class={ if entry.status == "Valid" { "valid" } else { "invalid" } }>
                 <td>{ &entry.node }</td>
                 <td>{ &entry.shape }</td>
                 <td class="details-row">{ &entry.status }</td>
                 <td>
-                    <button type="button" class="show-btn" onclick=self.link.callback(move |_| Msg::OpenModal(cloned_entry.node.clone(), cloned_entry.reason.clone()))>
+                    <button type="button" class="show-btn" onclick=self.link.callback(move |_| Msg::OpenModal(node.clone(), content.clone()))>
                         <i class="fas fa-plus"></i>
                     </button>
                 </td>
